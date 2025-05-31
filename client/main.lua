@@ -42,7 +42,7 @@ function love.load(args)
         s.enabledSelf = false
     end
 
-    function switchScene(scene, ...)
+    function SwitchScene(scene, ...)
         if scenes[scene] then scene = scenes[scene] end
         if floof.is(scene) and scene.parent == floof.root then
             local prev = floof.root.activeChild
@@ -60,5 +60,5 @@ function love.load(args)
         end
     end
 
-    switchScene("Menu")
+    SwitchScene("Menu")
 end

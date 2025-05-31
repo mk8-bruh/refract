@@ -1,7 +1,7 @@
 local title = floof.class("Title")
 
 title.color = {0, 0, 0}
-title.font = love.graphics.newFont(60)
+title.font = love.graphics.newFont(100)
 
 function title:init(parent, text, position, color, font)
     self.parent = parent

@@ -27,7 +27,7 @@ function button:init(parent, text, action, position, color, font)
 end
 
 function button:getSize()
-    return vec(self.width or self.font:getWidth(self.text) + self.padding.x, self.height or self.font:getHeight() + self.padding.y)
+    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x), self.height or (self.font:getHeight() + self.padding.y))
 end
 
 function button:draw()
