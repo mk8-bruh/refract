@@ -1,4 +1,4 @@
-local vec = require "vec2"
+local vec = require "libs.vec"
 
 function circumcenter(a, b, c)
     return vec(
