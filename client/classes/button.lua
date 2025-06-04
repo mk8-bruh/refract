@@ -1,4 +1,4 @@
-local button = floof.class("Button")
+local button = floof.class("Button", Element)
 
 button.color = {
     outline = {0, 0, 0},
@@ -17,21 +17,18 @@ button.outlineWidth = 3
 button.padding = vec(10, 10)
 button.cornerRadius = 10
 
-function button:init(parent, text, action, position, color, font)
+function button:init(parent, text, action, anchor, origin, color, font)
     self.parent = parent
     self.text = text
     self.action = action
-    self.position = position
+    self.anchor = anchor
+    self.origin = origin
     self.color = color
     self.font = font
 end
 
-function button:getSize()
-    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x), self.height or (self.font:getHeight() + self.padding.y))
-end
-
 function button:draw()
-    local x, y = self.position:unpack()
+    local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local tw, th = self.font:getWidth(self.text), self.font:getHeight()
 

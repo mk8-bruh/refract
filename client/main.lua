@@ -18,17 +18,23 @@ function love.load(args)
     floof.init()
 
     -- universal checking function
-    function floof.checks.default(o, x, y)
+    function floof.checks.default(self, x, y)
         local ox, oy, ow, oh
-        if o.position then
-            ox, oy = o.position:unpack()
-        elseif o.getPosition then
-            ox, oy = o:getPosition():unpack()
+        if self.position then
+            ox, oy = self.position:unpack()
+        elseif self.getPosition then
+            ox, oy = self:getPosition():unpack()
         end
-        if o.size then
-            ow, oh = o.size:unpack()
-        elseif o.getSize then
-            ow, oh = o:getSize():unpack()
+        if self.size then
+            ow, oh = self.size:unpack()
+        elseif self.getSize then
+            ow, oh = self:getSize():unpack()
+        end
+        if self.origin then
+            if self.origin:match("left"  ) then ox = ox + ow/2 end
+            if self.origin:match("right" ) then ox = ox - ow/2 end
+            if self.origin:match("top"   ) then oy = oy + oh/2 end
+            if self.origin:match("bottom") then oy = oy - oh/2 end
         end
         if ox and oy and ow and oh then
             return math.abs(x - ox) <= ow/2 and math.abs(y - oy) <= oh/2
@@ -37,7 +43,8 @@ function love.load(args)
 
     -- load classes
     classes = {
-        "Title", "Button", "Label"
+        "Element", "Title", "Button", "ColorIndicator",
+        "Player", "BoltManager", "ParticleManager", "Label"
     }
     for i, n in ipairs(classes) do
         local c = require("classes." .. n:lower())
@@ -46,8 +53,7 @@ function love.load(args)
 
     -- load scenes
     scenes = {
-        "Menu",
-        "Options"
+        "Menu", "Game", "Options"
     }
     for i, n in ipairs(scenes) do
         local s = require("scenes." .. n:lower())

@@ -1,5 +1,68 @@
 local vec = require "libs.vec"
 
+-- table-related utilities
+
+function merge(a, b)
+    local t = {}
+    for k, v in pairs(a) do t[k] = v end
+    for k, v in pairs(b) do t[k] = v end
+    return t
+end
+
+function filter(t, f)
+    for i = #t, 1, -1 do
+        if not f(t[i]) then
+            table.remove(t, i)
+        end
+    end
+end
+
+-- basic geometry
+
+function nearestPoint(x, type, o, p)
+    local v = type:match("vector") and p or (p - o)
+    local d = x - o
+    local t = v:dot(d) / v.sqrLen
+    if type:match("segment") then
+        t = math.max(0, math.min(1, t))
+    elseif type:match("ray") then
+        t = math.max(0, t)
+    end
+    return o + t * v
+end
+
+function intersect(type1, o1, p1, type2, o2, p2)
+    local v1, v2 = type1:match("vector") and p1 or (p1 - o1), type2:match("vector") and p2 or (p2 - o2)
+    local v3 = o1 - o2
+    local d = v1:det(v2)
+    if d == 0 then return end
+    local t1 = v2:det(v3) / d
+    if (type1:match("segment") and (t1 < 0 or t1 > 1)) or (type1:match("ray") and t1 < 0) then return end
+    local t2 = v1:det(v3) / d
+    if (type2:match("segment") and (t2 < 0 or t2 > 1)) or (type2:match("ray") and t2 < 0) then return end
+    return (o1 + t1 * v1 + o2 + t2 * v2) / 2
+end
+
+function intersectCircle(type, o, p, c, r)
+    local v = type:match("vector") and p or (p - o)
+    local d = c - o
+    local f = math.abs(v:normal():det(d))
+    if f > r then return end
+    local t = v:dot(d) / v.sqrLen - math.sqrt(r^2 - f^2) / v.len
+    if (type:match("segment") and (t < 0 or t > 1)) or (type:match("ray") and t < 0) then return end
+    return o + t * v
+end
+
+function insidePolygon(p, poly)
+    for i = 1, #poly do
+        local v1, v2 = poly[i], poly[i % #poly + 1]
+        if (p - v1):det(v2 - v1) > 0 then
+            return false
+        end
+    end
+    return true
+end
+
 function circumcenter(a, b, c)
     return vec(
         (a:dot(a) * (b.y - c.y) + b:dot(b) * (c.y - a.y) + c:dot(c) * (a.y - b.y)),
@@ -15,6 +78,8 @@ end
 function circumCircleContains(p, a, b, c)
     return (p - circumcenter(a, b, c)).len <= circumradius(a, b, c)
 end
+
+-- Delaunay triangulation
 
 function superTriangle(points)
     local min_x, min_y = math.huge, math.huge
@@ -33,71 +98,58 @@ function superTriangle(points)
     return {p1, p2, p3}
 end
 
-function merge(a, b)
-    local t = {}
-    for k, v in pairs(a) do t[k] = v end
-    for k, v in pairs(b) do t[k] = v end
-    return t
-end
-
-function filter(t, f)
-    for i = #t, 1, -1 do
-        if not f(t[i]) then
-            table.remove(t, i)
-        end
-    end
-end
-
 function triangle(a, b, c)
     if a ~= b and b ~= c and c ~= a then
-        return {a, b, c, points = {[a] = 1, [b] = 2, [c] = 3}}
+        return {a, b, c, index = {[a] = 1, [b] = 2, [c] = 3}}
     end
 end
 
 function delaunay(points)
-    local r, n = {}, {}
-    local st = superTriangle(points)
-    local p = merge(points, {[-2] = st[1], [-1] = st[2], [0] = st[3]})
-    table.insert(r, triangle(-2, -1, 0))
-    for i, v in ipairs(p) do
-        local bt, b = {}, {}
-        for j = #r, 1, -1 do
-            if circumCircleContains(v, p[r[j][1]], p[r[j][2]], p[r[j][3]]) then
-                table.insert(bt, table.remove(r, j))
+    local triangles, edges = {}, {}
+    local super = superTriangle(points)
+    table.insert(triangles, triangle(unpack(super)))
+    for i, point in ipairs(points) do
+        edges[point] = {}
+        local oldTriangles, newEdges = {}, {}
+        for j = #triangles, 1, -1 do
+            if circumCircleContains(point, unpack(triangles[j])) then
+                table.insert(oldTriangles, table.remove(triangles, j))
             end
         end
-        for _, t in ipairs(bt) do
+        for j, triangle in ipairs(oldTriangles) do
             local e = {false, false, false}
-            for _, o in ipairs(bt) do
-                if t ~= o then
-                    e[1], e[2], e[3] = e[1] or (o.points[t[1]] and o.points[t[2]]), e[2] or (o.points[t[2]] and o.points[t[3]]), e[3] or (o.points[t[3]] and o.points[t[1]])
+            for k, other in ipairs(oldTriangles) do
+                if triangle ~= other then
+                    e[1], e[2], e[3] = e[1] or (other.index[t[1]] and other.index[t[2]]), e[2] or (other.index[t[2]] and other.index[t[3]]), e[3] or (other.index[t[3]] and other.index[t[1]])
                 end
             end
-            if not e[1] then table.insert(b, {t[1], t[2]}) end
-            if not e[2] then table.insert(b, {t[2], t[3]}) end
-            if not e[3] then table.insert(b, {t[3], t[1]}) end
+            if not e[1] then table.insert(newEdges, {t[1], t[2]}) end
+            if not e[2] then table.insert(newEdges, {t[2], t[3]}) end
+            if not e[3] then table.insert(newEdges, {t[3], t[1]}) end
         end
-        for _, e in ipairs(b) do
-            table.insert(r, triangle(i, unpack(e)))
+        for j, edge in ipairs(newEdges) do
+            table.insert(triangles, triangle(point, unpack(edge)))
         end
     end
-    for i = #r, 1, -1 do
-        local t = r[i]
-        if t.points[-2] or t.points[-1] or t.points[0] then
+    for i = #triangles, 1, -1 do
+        local triangle = r[i]
+        if triangle.index[super[1]] or triangle.index[super[2]] or triangle.index[super[3]] then
             table.remove(r, i)
         else
-            for j = 1, 3 do
-                n[t[j]] = n[t[j]] or {}
-                for k = 1, 3 do
-                    if j ~= k then
-                        n[t[j]][t[k]] = true
-                    end
+            for j = 1, #triangle do
+                for k = j + 1, #triangle do
+                    local v1, v2 = triangle[j], triangle[k]
+                    if v2.x < v1.x or (v2.x == v1.x and v2.y < v1.y) then v1, v2 = v2, v1 end
+                    local edge = {v1, v2}
+                    edges[v1][v2], edges[v2][v1] = edge, edge
                 end
             end
         end
     end
-    return r, n
+    return triangles, edges
 end
+
+-- procedural Voronoi graph
 
 function fractalNoise(x, y, seed, layers)   
     local v = 0
@@ -143,65 +195,257 @@ function generateVoronoiCell(seed, x, y)
             table.insert(cellPositions, vec(x, y))
         end
     end
-    local triangulation = delaunay(points)
-    filter(triangulation, function(triangle) return triangle.points[2*genRadius^2 + 2*genRadius + 1] end)
-    local center = {}
-    local angle = {}
-    for _, t in ipairs(triangulation) do
-        center[t] = circumcenter(points[t[1]], points[t[2]], points[t[3]])
-        angle[t] = (center[t] - cell.anchor).atan2
+    local triangles, edges = delaunay(points)
+    filter(triangles, function(triangle) return triangle.index[2*genRadius^2 + 2*genRadius + 1] end)
+    for i, triangle in ipairs(triangles) do
+        triangle.circumcenter = circumcenter(unpack(triangle))
+        triangle.longtitude = (triangle.center - cell.anchor).atan2
+        table.remove(triangle, triangle.index[2*genRadius^2 + 2*genRadius + 1])
     end
-    table.sort(triangulation, function(a, b) return angle[a] < angle[b] end)
-    for i, triangle in ipairs(triangulation) do
-        table.insert(cell.vertices, center[triangle])
-        local edge = {center[triangle], center[triangulation[i % #triangulation + 1]]}
+    table.sort(triangles, function(a, b) return a.longtitude < b.longtitude end)
+    for i, triangle in ipairs(triangles) do
+        table.insert(cell.vertices, triangle.circumcenter)
+        local edge = {triangle.circumcenter, triangles[i % #triangles + 1].circumcenter}
         table.insert(cell.edges, edge)
-        table.remove(triangle, triangle.points[2*genRadius^2 + 2*genRadius + 1])
-        cell.neighbors[edge] = cellPositions[triangulation[i % #triangulation + 1].points[triangle[1]] and triangle[1] or triangle[2]]
+        cell.neighbors[edge] = cellPositions[triangles[i % #triangles + 1].index[triangle[1]] and triangle[1] or triangle[2]]
     end
     return cell
 end
 
-function nearestPoint(x, type, o, p)
-    local v = type:match("vector") and p or (p - o)
-    local d = x - o
-    local t = v:dot(d) / v.sqrLen
-    if type:match("segment") then
-        t = math.max(0, math.min(1, t))
-    elseif type:match("ray") then
-        t = math.max(0, t)
-    end
-    return o + t * v
-end
+-- map generation
 
-function intersect(type1, o1, p1, type2, o2, p2)
-    local v1, v2 = type1:match("vector") and p1 or (p1 - o1), type2:match("vector") and p2 or (p2 - o2)
-    local v3 = o1 - o2
-    local d = v1:det(v2)
-    if d == 0 then return end
-    local t1 = v2:det(v3) / d
-    if (type1:match("segment") and (t1 < 0 or t1 > 1)) or (type1:match("ray") and t1 < 0) then return end
-    local t2 = v1:det(v3) / d
-    if (type2:match("segment") and (t2 < 0 or t2 > 1)) or (type2:match("ray") and t2 < 0) then return end
-    return (o1 + t1 * v1 + o2 + t2 * v2) / 2
-end
+function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize)
+    local rng = love.math.newRangomGenerator(seed or os.time())
 
-function intersectCircle(type, o, p, c, r)
-    local v = type:match("vector") and p or (p - o)
-    local d = c - o
-    local f = math.abs(v:normal():det(d))
-    if f > r then return end
-    local t = v:dot(d) / v.sqrLen - math.sqrt(r^2 - f^2) / v.len
-    if (type:match("segment") and (t < 0 or t > 1)) or (type:match("ray") and t < 0) then return end
-    return o + t * v
-end
+    cells = {byPosition = {}} -- { position, anchor, vertices[ index -> point ], edges[ index -> edge, neighbor -> edge ], neighbors[ edge -> neighbor ] } [ index -> cell ] byPosition[ position -> cell ]
+    edges = {} -- { pointA, pointB, length, wall } [ pointA -> pointB -> edge]
+    boundary = {cells = {}, edges = {}} -- cells[ index -> cell, edge -> cell ], edges[ index -> edge, cell -> array<edge>]
+    rooms = {} -- { cells[ index -> cell ], edges[ index -> edge, room -> array<edge> ], neighbors[ index -> room, edge -> room ] }
 
-function insidePolygon(p, poly)
-    for i = 1, #poly do
-        local v1, v2 = poly[i], poly[i % #poly + 1]
-        if (p - v1):det(v2 - v1) > 0 then
-            return false
+    -- generate polygons
+    for x = -radius, radius do
+        for y = -radius, radius do
+            if x^2 + y^2 <= radius^2 * 1.1 then
+                local cell = generateVoronoiCell(seed, x, y)
+                table.insert(cells, cell)
+                cells.byPosition[cell.position] = cell
+                for i, v in ipairs(cell.vertices) do
+                    edges[v] = {}
+                end
+            end
         end
     end
-    return true
+
+    -- link neighbors
+    for i, cell in ipairs(cells) do
+        boundary.edges[cell] = {}
+        for j, edge in ipairs(cell.edges) do
+            local v1, v2 = unpack(edge)
+            if v2.x < v1.x or (v2.x == v1.x and v2.y < v1.y) then v1, v2 = v2, v1 end
+            local e = edges[v1][v2]
+            if not e then
+                e = {
+                    v1, v2, length = (v1 - v2).len
+                }
+                table.insert(edges, e)
+                edges[v1][v2], edges[v2][v1] = e, e
+            end
+            cell.edges[j] = e
+            local n = cells.byPosition[cell.neighbors[edge]]
+            cell.neighbors[edge] = nil
+            if n then
+                cell.neighbors[e] = n
+                cell.edges[n] = e
+            else
+                table.insert(boundary.edges, e)
+                table.insert(boundary.edges[cell], e)
+                table.insert(boundary.cells, cell)
+                boundary.cells[e] = cell
+                e.wall = boundaryWall
+            end
+        end
+    end
+
+    -- initialize rooms
+    local queue = {}
+    for i = 1, rng:random(minRoomCount, maxRoomCount) do
+        local cell, isValid
+        local iterations = 0
+        repeat
+            cell = cells[rng:random(#cells)]
+            isValid = true
+            for j, room in ipairs(rooms) do
+                if (room.cells[1].anchor - cell.anchor).len < minRoomSize/2 then
+                    isValid = false
+                    break
+                end
+            end
+            iterations = iterations + 1
+        until isValid == true or iterations > 20
+        if isValid then
+            local room = {cells = {cell}, edges = {}, neighbors = {}}
+            cell.room = room
+            table.insert(rooms, room)
+            table.insert(queue, cell)
+        end
+    end
+
+    -- flood fill
+    while #queue > 0 do
+        for i = #queue, 1, -1 do
+            local cell = table.remove(queue, i)
+            cell.queued = nil
+            if not cell.room then
+                local room, weight = nil, 0
+                for r, w in pairs(cell.roomWeights) do
+                    if w > weight then
+                        room, weight = r, w
+                    end
+                end
+                cell.room = room
+                table.insert(room.cells, cell)
+            end
+            local room = cell.room
+            for edge, neighbor in pairs(cell.neighbors) do
+                local other = neighbor.room
+                if not other then
+                    if not neighbor.queued then
+                        neighbor.queued = true
+                        neighbor.roomWeights = {}
+                        table.insert(queue, neighbor)
+                    end
+                    neighbor.roomWeights[room] = (neighbor.roomWeights[room] or 0) + edge.length
+                elseif other ~= room then
+                    if not room.edges[other] then
+                        room.edges[other] = {}
+                        table.insert(room.neighbors, other)
+                    end
+                    if not other.edges[room] then
+                        other.edges[room] = {}
+                        table.insert(other.neighbors, room)
+                    end
+                    if not room.neighbors[edge] then
+                        table.insert(room.edges, edge)
+                        table.insert(room.edges[other], edge)
+                        room.neighbors[edge] = other
+                    end
+                    if not other.neighbors[edge] then
+                        table.insert(other.edges, edge)
+                        table.insert(other.edges[room], edge)
+                        other.neighbors[edge] = room
+                    end
+                    edge.wall = roomWall
+                end
+            end
+        end
+    end
+
+    -- create doors
+    for i, room in ipairs(rooms) do
+        for j, other in ipairs(room.neighbors) do
+            local door = nil
+            for k, edge in ipairs(room.edges[other]) do
+                if not door or edge.length > door.length then
+                    door = edge
+                end
+            end
+            if door then
+                door.wall = nil
+            end
+        end
+    end
+end
+
+-- ray tracing
+
+function traceRay(cell, origin, direction, range, light, power)
+    if not (cell and origin and direction and range) then return end
+    direction = direction:normal()
+    power = power or 1
+    local r = {
+        cell = cell,
+        origin = origin,
+        direction = direction,
+        length = range,
+        light = light,
+        power = power,
+        hit = nil,
+    }
+    for _, edge in ipairs(cell.edges) do
+        local v1, v2 = unpack(edge)
+        if (v1 - cell.anchor):det(v2 - cell.anchor) < 0 then v1, v2 = v2, v1 end
+        local normal = (v2 - v1):normal()
+        normal = vec(-normal.y, normal.x)
+        local p = intersect("vector ray", origin, direction, "segment", v1, v2)
+        if p and direction:dot(normal) < 0 then
+            local d = (p - origin).len
+            if not range or d < range  then
+                r.length = d
+                local neighbor = cell.neighbors[edge]
+                if not edge.wall and not neighbor.wall then
+                    r = traceRay(neighbor, origin, direction, range, light, power) or r
+                    r.cell = cell
+                    return r
+                end
+                r.hit = {
+                    point = p,
+                    normal = normal,
+                    edge = edge,
+                    cell = neighbor
+                }
+                local wall = cell.wall ~= edge.wall and edge.wall or neighbor and neighbor.wall
+                local n1 = cell.wall and cell.wall.material.density or 1
+                local n2 = wall and wall.material.density or 1
+                local alpha = (-normal):signedAngle(direction)
+                local refl  = normal:rotate(-alpha)
+                local sin_beta = math.sin(alpha) * n1/n2
+                if math.abs(sin_beta) < 1 then
+                    local refr = (-normal):rotate(math.asin(sin_beta))
+                    if light and wall.split and wall.split[light] then
+                        if wall.split[light].refract and neighbor then
+                            r.refract = traceRay(neighbor, p, refr, range - d, wall.split[light].refract, power/2)
+                        end
+                        if wall.split[light].reflect then
+                            r.reflect = traceRay(cell,     p, refl, range - d, wall.split[light].reflect, power/2)
+                        end
+                    elseif wall.material.refract and neighbor then
+                        r.refract = traceRay(neighbor, p, refr, range - d, light, power)
+                    elseif wall.material.reflect then
+                        r.reflect = traceRay(cell,     p, refl, range - d, light, power)
+                    end
+                else
+                    r.reflect = traceRay(cell, p, refl, range - d, light, power)
+                end
+                return r
+            end
+        end
+    end
+    return r
+end
+
+local maxRayLength = 30
+function drawRay(ray, width, from, to, opacity, overrideColor)
+    opacity = opacity or 1
+    from, to = from or 0, to or maxRayLength
+    local len = math.min(ray.length, maxRayLength)
+    if to > len then
+        if ray.reflect then
+            drawRay(ray.reflect, width, from - len, to - len, opacity, overrideColor)
+        end
+        if ray.refract then
+            drawRay(ray.refract, width, from - len, to - len, opacity, overrideColor)
+        end
+    end
+    if from < len and to > 0 and (overrideColor or ray.light) then
+        from, to = math.max(math.min(from, len), 0), math.max(math.min(to, len), 0)
+        local p1, p2 = ray.origin + ray.direction:setLen(from), ray.origin + ray.direction:setLen(to)
+        love.graphics.push("all")
+        local r, g, b = unpack(overrideColor or ray.light.color)
+        love.graphics.setColor(r, g, b, opacity)
+        love.graphics.circle("fill", p1.x, p1.y, width/2)
+        love.graphics.circle("fill", p2.x, p2.y, width/2)
+        love.graphics.setLineWidth(width)
+        love.graphics.line(p1.x, p1.y, p2.x, p2.y)
+        love.graphics.pop()
+    end
 end

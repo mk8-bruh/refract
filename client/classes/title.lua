@@ -1,9 +1,9 @@
-local title = floof.class("Title")
+local title = floof.class("Title", Element)
 
 title.color = {0, 0, 0}
 title.font = love.graphics.newFont("fonts/Audiowide-Regular.ttf", 150)
 
-function title:init(parent, text, position, color, font)
+function title:init(parent, text, anchor, origin, color, font)
     self.parent = parent
     self.text = text
     self.position = position
@@ -62,12 +62,8 @@ function title:update(dt)
     end
 end
 
-function title:getSize()
-    return vec(self.font:getWidth(self.text), self.font:getHeight())
-end
-
 function title:draw()
-    local x, y = self.position:unpack()
+    local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local shown = self.text:sub(1, self.typed)
     local offset_x = x - w/2
