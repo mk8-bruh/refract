@@ -31,7 +31,8 @@ function love.load(args)
 
     -- load classes
     classes = {
-        "Element", "Title", "Button"
+        "Element", "Title", "Button", "ColorIndicator",
+        "Player", "BoltManager", "ParticleManager"
     }
     for i, n in ipairs(classes) do
         local c = require("classes." .. n:lower())
@@ -40,7 +41,7 @@ function love.load(args)
 
     -- load scenes
     scenes = {
-        "Menu"
+        "Menu", "Game"
     }
     for i, n in ipairs(scenes) do
         local s = require("scenes." .. n:lower())

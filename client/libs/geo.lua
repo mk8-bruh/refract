@@ -229,9 +229,6 @@ function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize)
                 local cell = generateVoronoiCell(seed, x, y)
                 table.insert(cells, cell)
                 cells.byPosition[cell.position] = cell
-                if insidePolygon(position, cell.vertices) then
-                    currentCell = cell
-                end
                 for i, v in ipairs(cell.vertices) do
                     edges[v] = {}
                 end
