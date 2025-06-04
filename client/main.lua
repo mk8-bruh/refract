@@ -1,8 +1,20 @@
 vec = require "libs.vec"
 geo = require "libs.geo"
 floof = require "libs.floof"
+require "libs.serial"
 
 function love.load(args)
+    if love.filesystem.getInfo("settings.txt") then
+        local settingsString = love.filesystem.read("settings.txt")
+        settings = deserialize(settingsString)
+    else
+        settings = {
+            volume = 0.5,
+            brightness = 1 
+        }
+        love.filesystem.write("settings.txt", serialize(settings))
+    end
+
     floof.init()
 
     -- universal checking function
@@ -25,7 +37,7 @@ function love.load(args)
 
     -- load classes
     classes = {
-        "Title", "Button"
+        "Title", "Button", "Label"
     }
     for i, n in ipairs(classes) do
         local c = require("classes." .. n:lower())
@@ -34,7 +46,8 @@ function love.load(args)
 
     -- load scenes
     scenes = {
-        "Menu"
+        "Menu",
+        "Options"
     }
     for i, n in ipairs(scenes) do
         local s = require("scenes." .. n:lower())
@@ -61,4 +74,8 @@ function love.load(args)
     end
 
     SwitchScene("Menu")
+end
+
+function love.quit()
+    love.filesystem.write("settings.txt", serialize(settings))
 end

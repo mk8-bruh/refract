@@ -5,13 +5,24 @@ function menu:init()
     self.playButton = Button(self, "Play", function()
         SwitchScene("Game")
     end)
+    self.optionsButton = Button(self, "Options", function()
+        SwitchScene("Options")
+    end)
     self.quitButton = Button(self, "Quit", function()
         love.event.quit()
     end)
 
+    self.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
+
+    self.music = love.audio.newSource("audio/scifi.mp3", "stream")
+    self.music:setLooping(true)
+    self.music:play()
+    self.music:setVolume(settings.volume)
+
     self.layout = {
         self.title,
         self.playButton,
+        self.optionsButton, -- Add the options button to the layout
         self.quitButton
     }
     self.spacing = 20
@@ -35,8 +46,20 @@ function menu:resize(w, h)
 end
 
 function menu:draw()
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
+    -- Draw the background image, scaled to fill the screen (cover, not stretch)
+    local w, h = love.graphics.getDimensions()
+    local img = self.backgroundImage
+    if img then
+        local iw, ih = img:getWidth(), img:getHeight()
+        local scale = math.max(w / iw, h / ih)
+        local drawW, drawH = iw * scale, ih * scale
+        local offsetX, offsetY = (w - drawW) / 2, (h - drawH) / 2
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.draw(img, offsetX, offsetY, 0, scale, scale)
+    end
+
+    -- Draw other UI elements here (title, buttons, etc.)
+    -- Example: self.title:draw(), self.playButton:draw(), etc.
 end
 
 return floof.new(menu)
