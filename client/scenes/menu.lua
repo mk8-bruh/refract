@@ -28,7 +28,7 @@ function menu:resize(w, h)
     local y = h/2 - contentSize/2
     for _, element in ipairs(self.layout) do
         local element_h = (element.size or element:getSize()).y
-        element.position = vec(w/2, y + element_h/2)
+        element:setPosition(vec(w/2, y + element_h/2))
         element.width = w * 0.2
         y = y + element_h + self.spacing
     end
