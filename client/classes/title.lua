@@ -20,4 +20,8 @@ function title:draw()
     love.graphics.print(self.text, x - w/2, y - h/2)
 end
 
+function title:getSize()
+    return vec(self.font:getWidth(self.text), self.font:getHeight())
+end
+
 return title

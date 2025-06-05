@@ -17,10 +17,20 @@ function filter(t, f)
     end
 end
 
+-- graphics
+
+function applyCameraTransform(x, y, z, r)
+    love.graphics.translate(love.graphics.getWidth()/2, love.graphics.getHeight()/2)
+    love.graphics.scale(z or 1)
+    love.graphics.rotate(-(r or 0))
+    love.graphics.translate(-x, -y)
+end
+
 -- basic geometry
 
 function nearestPoint(x, type, o, p)
     local v = type:match("vector") and p or (p - o)
+    if v == vec.zero then return o end
     local d = x - o
     local t = v:dot(d) / v.sqrLen
     if type:match("segment") then
@@ -45,6 +55,7 @@ end
 
 function intersectCircle(type, o, p, c, r)
     local v = type:match("vector") and p or (p - o)
+    if v == vec.zero then return end
     local d = c - o
     local f = math.abs(v:normal():det(d))
     if f > r then return end
@@ -81,6 +92,12 @@ end
 
 -- Delaunay triangulation
 
+function triangle(a, b, c)
+    if a ~= b and b ~= c and c ~= a then
+        return {a, b, c, index = {[a] = 1, [b] = 2, [c] = 3}}
+    end
+end
+
 function superTriangle(points)
     local min_x, min_y = math.huge, math.huge
     local max_x, max_y = -math.huge, -math.huge
@@ -92,16 +109,11 @@ function superTriangle(points)
     end
     local dx, dy = max_x - min_x, max_y - min_y
     local delta_max = math.max(dx, dy) * 10
-    local p1 = vec(min_x - delta_max, min_y - delta_max)
-    local p2 = vec(min_x + delta_max * 2, min_y - delta_max)
-    local p3 = vec(min_x - delta_max, min_y + delta_max * 2)
-    return {p1, p2, p3}
-end
-
-function triangle(a, b, c)
-    if a ~= b and b ~= c and c ~= a then
-        return {a, b, c, index = {[a] = 1, [b] = 2, [c] = 3}}
-    end
+    return triangle(
+        vec(min_x - delta_max, min_y - delta_max),
+        vec(min_x + delta_max * 2, min_y - delta_max),
+        vec(min_x - delta_max, min_y + delta_max * 2)
+    )
 end
 
 function delaunay(points)
@@ -120,21 +132,23 @@ function delaunay(points)
             local e = {false, false, false}
             for k, other in ipairs(oldTriangles) do
                 if triangle ~= other then
-                    e[1], e[2], e[3] = e[1] or (other.index[t[1]] and other.index[t[2]]), e[2] or (other.index[t[2]] and other.index[t[3]]), e[3] or (other.index[t[3]] and other.index[t[1]])
+                    e[1] = e[1] or (other.index[triangle[1]] and other.index[triangle[2]])
+                    e[2] = e[2] or (other.index[triangle[2]] and other.index[triangle[3]])
+                    e[3] = e[3] or (other.index[triangle[3]] and other.index[triangle[1]])
                 end
             end
-            if not e[1] then table.insert(newEdges, {t[1], t[2]}) end
-            if not e[2] then table.insert(newEdges, {t[2], t[3]}) end
-            if not e[3] then table.insert(newEdges, {t[3], t[1]}) end
+            if not e[1] then table.insert(newEdges, {triangle[1], triangle[2]}) end
+            if not e[2] then table.insert(newEdges, {triangle[2], triangle[3]}) end
+            if not e[3] then table.insert(newEdges, {triangle[3], triangle[1]}) end
         end
         for j, edge in ipairs(newEdges) do
             table.insert(triangles, triangle(point, unpack(edge)))
         end
     end
     for i = #triangles, 1, -1 do
-        local triangle = r[i]
+        local triangle = triangles[i]
         if triangle.index[super[1]] or triangle.index[super[2]] or triangle.index[super[3]] then
-            table.remove(r, i)
+            table.remove(triangles, i)
         else
             for j = 1, #triangle do
                 for k = j + 1, #triangle do
@@ -191,16 +205,17 @@ function generateVoronoiCell(seed, x, y)
     local points, cellPositions = {}, {}
     for x = x - genRadius, x + genRadius do
         for y = y - genRadius, y + genRadius do
-            table.insert(points, vec(x, y) + ((1 - offsetRange)/2 * vec.one) + (offsetRange * hashNoise2D(seed, x, y)))
-            table.insert(cellPositions, vec(x, y))
+            local p = vec(x, y) + ((1 - offsetRange)/2 * vec.one) + (offsetRange * hashNoise2D(seed, x, y))
+            table.insert(points, p)
+            cellPositions[p] = vec(x, y)
         end
     end
     local triangles, edges = delaunay(points)
-    filter(triangles, function(triangle) return triangle.index[2*genRadius^2 + 2*genRadius + 1] end)
+    filter(triangles, function(triangle) return triangle.index[cell.anchor] end)
     for i, triangle in ipairs(triangles) do
         triangle.circumcenter = circumcenter(unpack(triangle))
-        triangle.longtitude = (triangle.center - cell.anchor).atan2
-        table.remove(triangle, triangle.index[2*genRadius^2 + 2*genRadius + 1])
+        triangle.longtitude = (triangle.circumcenter - cell.anchor).atan2
+        table.remove(triangle, triangle.index[cell.anchor])
     end
     table.sort(triangles, function(a, b) return a.longtitude < b.longtitude end)
     for i, triangle in ipairs(triangles) do
@@ -214,8 +229,8 @@ end
 
 -- map generation
 
-function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize)
-    local rng = love.math.newRangomGenerator(seed or os.time())
+function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize, boundaryWall, roomWall)
+    local rng = love.math.newRandomGenerator(seed or os.time())
 
     cells = {byPosition = {}} -- { position, anchor, vertices[ index -> point ], edges[ index -> edge, neighbor -> edge ], neighbors[ edge -> neighbor ] } [ index -> cell ] byPosition[ position -> cell ]
     edges = {} -- { pointA, pointB, length, wall } [ pointA -> pointB -> edge]
@@ -304,6 +319,7 @@ function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize)
                 end
                 cell.room = room
                 table.insert(room.cells, cell)
+                cell.roomWeights = nil
             end
             local room = cell.room
             for edge, neighbor in pairs(cell.neighbors) do
@@ -354,6 +370,8 @@ function generateMap(seed, radius, minRoomCount, maxRoomCount, minRoomSize)
             end
         end
     end
+
+    return cells, edges, boundary, rooms
 end
 
 -- ray tracing
@@ -423,6 +441,71 @@ function traceRay(cell, origin, direction, range, light, power)
     return r
 end
 
+function tracePartial(range, cell, origin, direction, light, power)
+    if not (cell and origin and direction and range) then return end
+    direction = direction:normal()
+    power = power or 1
+    local r = {
+        cell = cell,
+        origin = origin,
+        direction = direction,
+        length = range,
+        light = light,
+        power = power,
+        hit = nil,
+    }
+    for _, edge in ipairs(cell.edges) do
+        local v1, v2 = unpack(edge)
+        if (v1 - cell.anchor):det(v2 - cell.anchor) < 0 then v1, v2 = v2, v1 end
+        local normal = (v2 - v1):normal()
+        normal = vec(-normal.y, normal.x)
+        local p = intersect("vector ray", origin, direction, "segment", v1, v2)
+        if p and direction:dot(normal) < 0 then
+            local d = (p - origin).len
+            if not range or d < range  then
+                r.length = d
+                local neighbor = cell.neighbors[edge]
+                if not edge.wall and not neighbor.wall then
+                    r = tracePartial(range, neighbor, origin, direction, light, power) or r
+                    r.cell = cell
+                    return r
+                end
+                r.hit = {
+                    point = p,
+                    normal = normal,
+                    edge = edge,
+                    cell = neighbor
+                }
+                local wall = cell.wall ~= edge.wall and edge.wall or neighbor and neighbor.wall
+                local n1 = cell.wall and cell.wall.material.density or 1
+                local n2 = wall and wall.material.density or 1
+                local alpha = (-normal):signedAngle(direction)
+                local refl  = normal:rotate(-alpha)
+                local sin_beta = math.sin(alpha) * n1/n2
+                if math.abs(sin_beta) < 1 then
+                    local refr = (-normal):rotate(math.asin(sin_beta))
+                    if light and wall.split and wall.split[light] then
+                        if wall.split[light].refract and neighbor then
+                            r.refract = {neighbor, p, refr, wall.split[light].refract, power/2}
+                        end
+                        if wall.split[light].reflect then
+                            r.reflect = {cell, p, refl, wall.split[light].reflect, power/2}
+                        end
+                    elseif wall.material.refract and neighbor then
+                        r.refract = {neighbor, p, refr, light, power}
+                    elseif wall.material.reflect then
+                        r.reflect = {cell, p, refl, light, power}
+                    end
+                else
+                    r.reflect = {cell, p, refl, light, power}
+                end
+                return r
+            end
+        end
+    end
+    return r
+end
+
 local maxRayLength = 30
 function drawRay(ray, width, from, to, opacity, overrideColor)
     opacity = opacity or 1
@@ -436,6 +519,24 @@ function drawRay(ray, width, from, to, opacity, overrideColor)
             drawRay(ray.refract, width, from - len, to - len, opacity, overrideColor)
         end
     end
+    if from < len and to > 0 and (overrideColor or ray.light) then
+        from, to = math.max(math.min(from, len), 0), math.max(math.min(to, len), 0)
+        local p1, p2 = ray.origin + ray.direction:setLen(from), ray.origin + ray.direction:setLen(to)
+        love.graphics.push("all")
+        local r, g, b = unpack(overrideColor or ray.light.color)
+        love.graphics.setColor(r, g, b, opacity)
+        love.graphics.circle("fill", p1.x, p1.y, width/2)
+        love.graphics.circle("fill", p2.x, p2.y, width/2)
+        love.graphics.setLineWidth(width)
+        love.graphics.line(p1.x, p1.y, p2.x, p2.y)
+        love.graphics.pop()
+    end
+end
+
+function drawPartial(ray, width, from, to, opacity, overrideColor)
+    opacity = opacity or 1
+    from, to = from or 0, to or maxRayLength
+    local len = math.min(ray.length, maxRayLength)
     if from < len and to > 0 and (overrideColor or ray.light) then
         from, to = math.max(math.min(from, len), 0), math.max(math.min(to, len), 0)
         local p1, p2 = ray.origin + ray.direction:setLen(from), ray.origin + ray.direction:setLen(to)

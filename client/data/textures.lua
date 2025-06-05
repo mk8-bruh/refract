@@ -1,8 +1,8 @@
 local textures = {
-    floor = love.graphics.newImage("floor.png"),
-    wall  = love.graphics.newImage("wall.png" ),
-    metal = love.graphics.newImage("metal.png"),
-    glass = love.graphics.newImage("glass.png"),
+    floor = love.graphics.newImage("textures/floor.png"),
+    wall  = love.graphics.newImage("textures/wall.png" ),
+    metal = love.graphics.newImage("textures/metal.png"),
+    glass = love.graphics.newImage("textures/glass.png"),
 }
 local meshSize = 30
 for k, t in pairs(textures) do

@@ -5,7 +5,6 @@ local light = require "data.light"
 player.radius = 0.25
 player.moveSpeed = 5
 player.sensitivity = 0.002
-player.previewRange = 10
 player.lightMap = {
     r = light.red,
     g = light.green,
@@ -15,65 +14,54 @@ player.lightMap = {
     rb = light.magenta,
     rgb = light.white
 }
+player.power = 1
 player.keybinds = {
     up = "w",
     down = "s",
-    left = "l",
-    right = "r",
-    shoot = "mouse0",
+    left = "a",
+    right = "d",
+    shoot = "mouse1",
     red = "x",
     green = "c",
     blue = "v"
 }
 
 function player:init(world, position, direction, keybinds)
+    self.parent = world
+    self.world = world
     self.position = position or vec.zero
-    self.direction = direction and direction:normal() or vec.right
+    self.direction = direction and direction:normal() or position ~= vec.zero and -position:normal() or vec.up
     self.radius = radius
     self.lightToggles = {red = true, green = true, blue = true}
     self.light = self.lightMap.rgb
-    self.ray = nil
     self.cell = nil
-    for _, cell in ipairs(world.cells) do
+    for _, cell in ipairs(self.world.cells) do
         if insidePolygon(self.position, cell.vertices) then
             self.cell = cell
         end
     end
-
     self.keybinds = setmetatable(keybinds or {}, {__index = player.keybinds})
 end
 
 function player:moveTo(position)
     for _, edge in ipairs(self.cell.edges) do
         if edge.wall then
-            local v1, v2 = unpack(edge)
-            if (v1 - cell.anchor):det(v2 - cell.anchor) < 0 then v1, v2 = v2, v1 end
-            local e = (v2 - v1):normal()
-            local normal = vec(-e.y, e.x)
-            if normal:dot(self.position - v1) > 0 then
-                local t = self.radius + edge.wall.thickness/2
-                local p = nearestPoint(position, "segment", v1, v2)
-                local d = position - p
-                if d.len < t then
-                    position = p + d:setLen(t)
-                end
+            local t = self.radius + edge.wall.thickness/2
+            local p = nearestPoint(position, "segment", unpack(edge))
+            local d = position - p
+            if d.len < t then
+                position = p + d:setLen(t)
             end
         end
     end
-    for _, neighbor in pairs(cell.neighbors) do
+    for _, neighbor in pairs(self.cell.neighbors) do
         for _, edge in ipairs(neighbor.edges) do
             if edge.wall then
-                 local v1, v2 = unpack(edge)
-                if (v1 - cell.anchor):det(v2 - cell.anchor) < 0 then v1, v2 = v2, v1 end
-                local e = (v2 - v1):normal()
-                local normal = vec(-e.y, e.x)
-                if normal:dot(self.position - v1) > 0 then
-                    local t = self.radius + edge.wall.thickness/2
-                    local p = nearestPoint(position, "segment", v1, v2)
-                    local d = position - p
-                    if d.len < t then
-                        position = p + d:setLen(t)
-                    end
+                local t = self.radius + edge.wall.thickness/2
+                local p = nearestPoint(position, "segment", unpack(edge))
+                local d = position - p
+                if d.len < t then
+                    position = p + d:setLen(t)
                 end
             end
         end
@@ -94,13 +82,14 @@ function player:move(delta)
 end
 
 function player:update(dt)
-    local move_inp = vec(
-        (love.keyboard.isDown(self.keybinds.right) and 1 or 0) - (love.keyboard.isDown(self.keybinds.left) and 1 or 0),
-        (love.keyboard.isDown(self.keybinds.down ) and 1 or 0) - (love.keyboard.isDown(self.keybinds.up  ) and 1 or 0)
-    ):rotate(self.direction.atan2 + math.pi/2)
-    local delta = move_inp:setLen(moveSpeed * dt)
-    self:move(delta)
-    self.ray = traceRay(self.cell, self.position, self.direction, self.previewRange, self.light)
+    if self.isActive then
+        local move_inp = vec(
+            (love.keyboard.isDown(self.keybinds.right) and 1 or 0) - (love.keyboard.isDown(self.keybinds.left) and 1 or 0),
+            (love.keyboard.isDown(self.keybinds.down ) and 1 or 0) - (love.keyboard.isDown(self.keybinds.up  ) and 1 or 0)
+        ):rotate(self.direction.atan2 + math.pi/2)
+        local delta = move_inp:setLen(self.moveSpeed * dt)
+        self:move(delta)
+    end
 end
 
 function player:mousedelta(x, y)
@@ -109,25 +98,25 @@ end
 
 function player:keypressed(key)
     if key == self.keybinds.shoot then
-        self.world.boltManager:shoot(self)
+        if self.light then
+            self.world.boltManager:shoot(self)
+        end
     elseif key == self.keybinds.red then
         self.lightToggles.red = not self.lightToggles.red
-        self.light = self.lightMap[(self.lightToggles.red and "r" or "") .. (self.lightToggles.green and "g" or "") .. (self.lightToggles.blue and "b" or "")]
-    elseif key == "x" then
+    elseif key == self.keybinds.green then
         self.lightToggles.green = not self.lightToggles.green
-        self.light = self.lightMap[(self.lightToggles.red and "r" or "") .. (self.lightToggles.green and "g" or "") .. (self.lightToggles.blue and "b" or "")]
-    elseif key == "c" then
+    elseif key == self.keybinds.blue then
         self.lightToggles.blue = not self.lightToggles.blue
-        self.light = self.lightMap[(self.lightToggles.red and "r" or "") .. (self.lightToggles.green and "g" or "") .. (self.lightToggles.blue and "b" or "")]
     end
+    self.light = self.lightMap[(self.lightToggles.red and "r" or "") .. (self.lightToggles.green and "g" or "") .. (self.lightToggles.blue and "b" or "")]
 end
 
 function player:draw()
     love.graphics.setLineWidth(0.025)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.circle("fill", position.x, position.y, radius)
+    love.graphics.circle("fill", self.position.x, self.position.y, self.radius)
     love.graphics.setColor(0, 0, 0)
-    love.graphics.circle("line", position.x, position.y, radius)
+    love.graphics.circle("line", self.position.x, self.position.y, self.radius)
 end
 
 return player

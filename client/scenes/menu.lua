@@ -3,7 +3,7 @@ local menu = {check = true, tostring = "[menu scene]"}
 function menu:init()
     self.title = Title(self, "REFRACT")
     self.playButton = Button(self, "Play", function()
-        SwitchScene("Game")
+        switchScene("Game")
     end)
     self.quitButton = Button(self, "Quit", function()
         love.event.quit()
@@ -28,7 +28,7 @@ function menu:resize(w, h)
     local y = h/2 - contentSize/2
     for _, element in ipairs(self.layout) do
         local element_h = (element.size or element:getSize()).y
-        element:setPosition(vec(w/2, y + element_h/2))
+        element.anchor = vec(w/2, y + element_h/2)
         element.width = w * 0.2
         y = y + element_h + self.spacing
     end
