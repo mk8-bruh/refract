@@ -12,7 +12,7 @@ button.color = {
         text = {1, 1, 1}
     }
 }
-button.font = love.graphics.newFont(30)
+button.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 40) -- Changed font file to "Roboto-Black.ttf" in fonts directory
 button.outlineWidth = 3
 button.padding = vec(10, 10)
 button.cornerRadius = 10
@@ -35,25 +35,36 @@ function button:draw()
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local tw, th = self.font:getWidth(self.text), self.font:getHeight()
-    love.graphics.setColor(
-        (self.isPressed and self.color.pressed and self.color.pressed.fill) or
-        (self.isHovered and self.color.hovered and self.color.hovered.fill) or
-        self.color.fill
-    )
+
+    -- Shadow
+    love.graphics.setColor(0, 0, 0, 0.18)
+    love.graphics.rectangle("fill", x - w/2 + 2, y - h/2 + 4, w, h, self.cornerRadius + 2)
+
+    -- Button fill color
+    local fill
+    if self.isPressed then
+        fill = {0.6, 0.6, 0.7}
+    elseif self.isHovered then
+        fill = {1, 1, 1}
+    else
+        fill = {0.92, 0.94, 1}
+    end
+    love.graphics.setColor(fill)
     love.graphics.rectangle("fill", x - w/2, y - h/2, w, h, self.cornerRadius)
-    love.graphics.setColor(
-        (self.isPressed and self.color.pressed and self.color.pressed.outline) or
-        (self.isHovered and self.color.hovered and self.color.hovered.outline) or
-        self.color.outline
-    )
+
+    -- Outline
+    love.graphics.setColor(0.2, 0.2, 0.3)
     love.graphics.setLineWidth(self.outlineWidth)
     love.graphics.rectangle("line", x - w/2, y - h/2, w, h, self.cornerRadius)
-    love.graphics.setColor(
-        (self.isPressed and self.color.pressed and self.color.pressed.text) or
-        (self.isHovered and self.color.hovered and self.color.hovered.text) or
-        self.color.text
-    )
+
+    -- Text shadow
     love.graphics.setFont(self.font)
+    love.graphics.setColor(0, 0, 0, 0.25)
+    love.graphics.print(self.text, x - tw/2 + 2, y - th/2 + 2)
+
+    -- Text
+    local textColor = (self.isPressed and {1,1,1}) or (self.isHovered and {0.2,0.2,0.3}) or {0.1,0.1,0.2}
+    love.graphics.setColor(textColor)
     love.graphics.print(self.text, x - tw/2, y - th/2)
 end
 
