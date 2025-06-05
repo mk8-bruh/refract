@@ -25,8 +25,8 @@ local function coordStr(x, y)
 end
 
 local function new(x, y)
-    if not isn(x) and isn(y) then
-        error(fstr("Both vector components must be numbers (got: %s, %s)", str(x), str(y)), 3)
+    if not isn(x) and isn(y) or tostring(x):match("nan") or tostring(y):match("nan") then
+        error(fstr("Both vector components must be numbers (got: %s, %s)", str(x), str(y)), 2)
     end
     if vec.precision then
         x, y = round(x / vec.minStep) * vec.minStep, round(y / vec.minStep) * vec.minStep
@@ -86,7 +86,7 @@ end
 
 function vec.normal(v)
     if vec.is(v) then
-        return v == vec.zero and vec.zero or v / v.len
+        return v.len == 0 and vec.zero or v / v.len
     else
         error(fstr("Normalization only supported on operands of type: [vector] (got: %s)", str(v)), 2)
     end

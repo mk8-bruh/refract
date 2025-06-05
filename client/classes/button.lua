@@ -27,6 +27,10 @@ function button:init(parent, text, action, anchor, origin, color, font)
     self.font = font
 end
 
+function button:getSize()
+    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x), self.height or (self.font:getHeight() + self.padding.y))
+end
+
 function button:draw()
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()

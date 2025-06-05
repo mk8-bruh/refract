@@ -94,4 +94,8 @@ function title:draw()
     end
 end
 
+function title:getSize()
+    return vec(self.font:getWidth(self.text), self.font:getHeight())
+end
+
 return title

@@ -17,34 +17,11 @@ function love.load(args)
 
     floof.init()
 
-    -- universal checking function
-    function floof.checks.default(self, x, y)
-        local ox, oy, ow, oh
-        if self.position then
-            ox, oy = self.position:unpack()
-        elseif self.getPosition then
-            ox, oy = self:getPosition():unpack()
-        end
-        if self.size then
-            ow, oh = self.size:unpack()
-        elseif self.getSize then
-            ow, oh = self:getSize():unpack()
-        end
-        if self.origin then
-            if self.origin:match("left"  ) then ox = ox + ow/2 end
-            if self.origin:match("right" ) then ox = ox - ow/2 end
-            if self.origin:match("top"   ) then oy = oy + oh/2 end
-            if self.origin:match("bottom") then oy = oy - oh/2 end
-        end
-        if ox and oy and ow and oh then
-            return math.abs(x - ox) <= ow/2 and math.abs(y - oy) <= oh/2
-        end
-    end
+    floof.checks.default = false
 
     -- load classes
     classes = {
-        "Element", "Title", "Button", "ColorIndicator",
-        "Player", "BoltManager", "ParticleManager", "Label"
+        "Element", "Title", "Button", "Label", "ColorIndicator", "BoltManager", "ParticleManager", "RayPreview", "World", "Player"
     }
     for i, n in ipairs(classes) do
         local c = require("classes." .. n:lower())
@@ -61,7 +38,7 @@ function love.load(args)
         s.enabledSelf = false
     end
 
-    function SwitchScene(scene, ...)
+    function switchScene(scene, ...)
         if scenes[scene] then scene = scenes[scene] end
         if floof.is(scene) and scene.parent == floof.root then
             local prev = floof.root.activeChild
@@ -79,9 +56,7 @@ function love.load(args)
         end
     end
 
-    SwitchScene("Menu")
-end
-
 function love.quit()
     love.filesystem.write("settings.txt", serialize(settings))
+    switchScene("Menu")
 end

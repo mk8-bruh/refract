@@ -1,5 +1,7 @@
 local element = floof.class("Element")
 
+element.origin = "middle center"
+
 function element:init(parent, anchor, origin)
     self.parent = parent
     self.anchor = anchor
@@ -8,44 +10,25 @@ end
 
 function element:getPosition()
     if self.anchor then
-        local x, y, w, h = self.anchor:unpack()
-        if self.size then
-            w, h = self.size:unpack()
-        elseif self.getSize then
-            w, h = self:getSize():unpack()
-        end
-        if w and h and self.origin then
-            if self.origin:match("left"  ) then x = x + w/2 end
-            if self.origin:match("right" ) then x = x - w/2 end
-            if self.origin:match("top"   ) then y = y + h/2 end
-            if self.origin:match("bottom") then y = y - h/2 end
-        end
-        return vec(x, y)
-    end
-end
-
-function element:setPosition(pos)
-    local x, y = pos:unpack()
-    if self.size then
-        w, h = self.size:unpack()
-    elseif self.getSize then
-        w, h = self:getSize():unpack()
-    end
-    if w and h and self.origin then
-        if self.origin:match("left"  ) then x = x - w/2 end
-        if self.origin:match("right" ) then x = x + w/2 end
-        if self.origin:match("top"   ) then y = y - h/2 end
-        if self.origin:match("bottom") then y = y + h/2 end
-    end
-    if self.anchor then
-        self.anchor = vec(x, y)
-    else
-        self.position = vec(x, y)
+        local x, y = self.anchor:unpack()
+        local w, h = self:getSize():unpack()
+        return vec(
+            self.origin:match("left") and x + w/2 or self.origin:match("center") and x or self.origin:match("right" ) and x - w/2,
+            self.origin:match("top" ) and y + h/2 or self.origin:match("middle") and y or self.origin:match("bottom") and y - h/2
+        )
     end
 end
 
 function element:getSize()
-    return vec(self.font:getWidth(self.text), self.font:getHeight())
+    return self.size
+end
+
+function element:check(px, py)
+    local x, y = self:getPosition():unpack()
+    local w, h = self:getSize():unpack()
+    if x and y and w and h then
+        return math.abs(px - x) <= w/2 and math.abs(py - y) <= h/2
+    end
 end
 
 return element
