@@ -9,9 +9,9 @@ function colorIndicator:init(parent, player, anchor, origin, size)
 
     local labelFont = love.graphics.newFont(30)
     self.labels = {
-        r = Title(self, nil, nil, nil, {1, 1, 1}, labelFont),
-        g = Title(self, nil, nil, nil, {1, 1, 1}, labelFont),
-        b = Title(self, nil, nil, nil, {1, 1, 1}, labelFont)
+        r = Label(self, nil, nil, nil, {1, 1, 1}, labelFont),
+        g = Label(self, nil, nil, nil, {1, 1, 1}, labelFont),
+        b = Label(self, nil, nil, nil, {1, 1, 1}, labelFont)
     }
 end
 

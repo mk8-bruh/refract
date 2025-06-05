@@ -32,7 +32,7 @@ function options:init()
     self.brightnessLabel.color = {fill={0,0,0,0}, outline={0,0,0,0}, text={1,1,1}}
 
     self.backButton = Button(self, "Back", function()
-        SwitchScene("Menu")
+        switchScene("Menu")
     end)
 
     self.displayModes = {"Fullscreen", "Windowed"}
@@ -77,7 +77,7 @@ function options:resize(w, h)
     local y = h/2 - contentSize/2
     for _, element in ipairs(self.layout) do
         local element_h = (element.size or element:getSize()).y
-        element.position = vec(w/2, y + element_h/2)
+        element.anchor = vec(w/2, y + element_h/2)
         element.width = w * 0.2
         y = y + element_h + self.spacing
     end

@@ -1,6 +1,6 @@
 vec = require "libs.vec"
-geo = require "libs.geo"
 floof = require "libs.floof"
+require "libs.geo"
 require "libs.serial"
 
 function love.load(args)
@@ -10,7 +10,7 @@ function love.load(args)
     else
         settings = {
             volume = 0.5,
-            brightness = 1 
+            brightness = 1
         }
         love.filesystem.write("settings.txt", serialize(settings))
     end
@@ -55,8 +55,10 @@ function love.load(args)
             end
         end
     end
+    
+    switchScene("Menu")
+end
 
 function love.quit()
     love.filesystem.write("settings.txt", serialize(settings))
-    switchScene("Menu")
 end

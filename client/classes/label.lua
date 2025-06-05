@@ -1,14 +1,15 @@
-local label = floof.class("Label")
+local label = floof.class("Label", Element)
 
 label.color = {1, 1, 1}
 label.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 32)
 
-function label:init(parent, text, position, color, font)
+function label:init(parent, text, anchor, origin, color, font)
     self.parent = parent
     self.text = text or ""
-    self.position = position
-    self.color = color or label.color
-    self.font = font or label.font
+    self.anchor = anchor
+    self.origin = origin
+    self.color = color
+    self.font = font
 end
 
 function label:getSize()
@@ -16,7 +17,7 @@ function label:getSize()
 end
 
 function label:draw()
-    local x, y = self.position:unpack()
+    local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     love.graphics.setFont(self.font)
     local color = self.color.text or self.color
