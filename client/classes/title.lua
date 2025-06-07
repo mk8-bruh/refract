@@ -1,37 +1,37 @@
-local title = floof.class("Title", Element)
+local Title = floof.class("Title", Element)
 
-title.color = {0, 0, 0}
-title.font = love.graphics.newFont("fonts/Audiowide-Regular.ttf", 150)
+Title.color = {
+    outline = {0, 0, 0},
+    fill = {1, 1, 1}
+}
+Title.font = love.graphics.newFont("fonts/Audiowide-Regular.ttf", 150)
+Title.outlineWidth = 2
+Title.scatter = 18
+Title.typingSpeed = 0.17
+Title.deletingSpeed = 0.03
+Title.pauseTime = 1.7
 
-function title:init(parent, text, anchor, origin, color, font)
+function Title:init(parent, text, params)
     self.parent = parent
     self.text = text
-    self.position = position
-    self.color = color or title.color
-    self.font = font or title.font
+    if params then copyData(params, self) end
 
-    -- Animation state
     self.typed = 0
     self.typing = true
     self.timer = 0
-    self.typingSpeed = 0.17
-    self.deletingSpeed = 0.03
-    self.pauseTime = 1.7
     self.pause = 0
 
-    -- Scatter offsets for each character
-    self.scatterOffsets = {}
     self:generateScatter()
 end
 
-function title:generateScatter()
+function Title:generateScatter()
     self.scatterOffsets = {}
     for i = 1, #self.text do
-        self.scatterOffsets[i] = love.math.random(-18, 18)
+        self.scatterOffsets[i] = love.math.random(-self.scatter, self.scatter)
     end
 end
 
-function title:update(dt)
+function Title:update(dt)
     if self.typing then
         self.timer = self.timer + dt
         if self.timer >= self.typingSpeed then
@@ -55,14 +55,14 @@ function title:update(dt)
                     self.typed = 0
                     self.typing = true
                     self.pause = self.pauseTime
-                    self:generateScatter() -- Generate new scatter when typing restarts
+                    self:generateScatter()
                 end
             end
         end
     end
 end
 
-function title:draw()
+function Title:draw()
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local shown = self.text:sub(1, self.typed)
@@ -75,27 +75,25 @@ function title:draw()
         local draw_x = offset_x
         local draw_y = y - h/2 + scatter
 
-        -- Draw black border (outline)
         love.graphics.setFont(self.font)
-        love.graphics.setColor(0, 0, 0)
-        for dx = -2, 2 do
-            for dy = -2, 2 do
+        love.graphics.setColor(self.color.outline)
+        for dx = -self.outlineWidth, self.outlineWidth do
+            for dy = -self.outlineWidth, self.outlineWidth do
                 if dx ~= 0 or dy ~= 0 then
                     love.graphics.print(char, draw_x + dx, draw_y + dy)
                 end
             end
         end
 
-        -- Draw white text
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(self.color.fill)
         love.graphics.print(char, draw_x, draw_y)
 
         offset_x = offset_x + char_w
     end
 end
 
-function title:getSize()
-    return vec(self.font:getWidth(self.text), self.font:getHeight())
+function Title:getSize()
+    return vec(self.font:getWidth(self.text), self.font:getHeight() + self.scatter * 2)
 end
 
-return title
+return Title

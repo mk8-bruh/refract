@@ -1,23 +1,23 @@
-local world = floof.class("World")
+local World = floof.class("World")
 
 local walls = require "data.walls"
 local textures = require "data.textures"
 
-world.viewSize = 15
-world.viewOffset = 4
+World.viewSize = 15
+World.viewOffset = 4
 
-world.minRoomCount = 8
-world.maxRoomCount = 12
-world.minRoomSize = 10
-world.boundaryWall = walls[1]
-world.roomWall = walls[1]
+World.minRoomCount = 8
+World.maxRoomCount = 12
+World.minRoomSize = 10
+World.boundaryWall = walls[1]
+World.roomWall = walls[1]
 
-world.backgroundImage = love.graphics.newImage("textures/background.png")
-world.backgroundScale = 0.02
+World.backgroundImage = love.graphics.newImage("textures/background.png")
+World.backgroundScale = 0.02
 
-world.groundTexture = textures.floor
+World.groundTexture = textures.floor
 
-function world:init(parent, size, seed)
+function World:init(parent, size, seed)
     self.parent = parent
     self.particleManager = ParticleManager(self)
     self.rayPreview = RayPreview(self)
@@ -30,7 +30,7 @@ function world:init(parent, size, seed)
     self.cells, self.edges, self.boundary, self.rooms = generateMap(self.seed, self.size/2, self.minRoomCount, self.maxRoomCount, self.minRoomSize, self.boundaryWall, self.roomWall)
 end
 
-function world:added(object)
+function World:added(object)
     if object:is(ParticleManager) then
         object.z = -3
     elseif object:is(RayPreview) then
@@ -43,7 +43,7 @@ function world:added(object)
     end
 end
 
-function world:removed(object)
+function World:removed(object)
     if object:is(Player) then
         for i, player in ipairs(self.players) do
             if player == object then
@@ -57,7 +57,7 @@ function world:removed(object)
     end
 end
 
-function world:draw()
+function World:draw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     if self.tracking then
         applyCameraTransform(
@@ -96,7 +96,7 @@ function world:draw()
     love.graphics.setStencilTest()
 end
 
-function world:latedraw()
+function World:latedraw()
     for _, cell in pairs(self.cells) do
         if cell.wall then
             love.graphics.stencil(function()
@@ -121,4 +121,4 @@ function world:latedraw()
     end
 end
 
-return world
+return World

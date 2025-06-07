@@ -2,19 +2,67 @@ local vec = require "libs.vec"
 
 -- table-related utilities
 
-function merge(a, b)
+function copyData(src, dest)
+    for k, v in pairs(src) do
+        dest[k] = v
+    end
+end
+
+function mergeData(a, b)
     local t = {}
-    for k, v in pairs(a) do t[k] = v end
-    for k, v in pairs(b) do t[k] = v end
+    copyData(a, t)
+    copyData(b, t)
     return t
 end
 
-function filter(t, f)
+function filterData(t, f)
     for i = #t, 1, -1 do
         if not f(t[i]) then
             table.remove(t, i)
         end
     end
+end
+
+-- serialization
+
+local indent = 4
+function serialize(table, indentLevel)
+    indentLevel = indentLevel or 0
+    local str = "{"
+    local ind = string.rep(" ", (indentLevel + 1) * indent)
+    for k, v in pairs(table) do
+        str = str .. "\n" .. ind
+        if type(k) == "string" then
+        str = str .. k
+        elseif type(k) == "number" then
+        str = str .. "[" .. tostring(k) .. "]"
+        else
+        error(("Unable to serialize key: %s (%s)"):format(k, type(k)))
+        end
+        str = str .. " = "
+        if type(v) == "string" then
+        str = str .. '"' .. v .. '"'
+        elseif type(v) == "boolean" or type(v) == "number" then
+        str = str .. tostring(v)
+        elseif type(v) == "table" then
+        str = str .. serialize(v, indentLevel + 1)
+        else
+        error(("Unable to serialize value: %s (%s)"):format(v, type(v)))
+        end
+        if next(table, k) then
+        str = str .. ","
+        end
+    end
+    str = str .. "\n" .. string.rep(" ", indentLevel * indent) .. "}"
+    return str
+end
+
+function deserialize(str)
+    local s, e = pcall(loadstring, "return " .. str)
+    if not s then
+        error(("Error while deserializing string %q: %s"):format(str, e))
+    end
+    return e()
 end
 
 -- graphics
@@ -211,7 +259,7 @@ function generateVoronoiCell(seed, x, y)
         end
     end
     local triangles, edges = delaunay(points)
-    filter(triangles, function(triangle) return triangle.index[cell.anchor] end)
+    filterData(triangles, function(triangle) return triangle.index[cell.anchor] end)
     for i, triangle in ipairs(triangles) do
         triangle.circumcenter = circumcenter(unpack(triangle))
         triangle.longtitude = (triangle.circumcenter - cell.anchor).atan2

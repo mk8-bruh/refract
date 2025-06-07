@@ -1,28 +1,30 @@
-local label = floof.class("Label", Element)
+local Label = floof.class("Label", Element)
 
-label.color = {1, 1, 1}
-label.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 32)
+Label.align = "center"
+Label.color = {1, 1, 1}
+Label.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 32)
 
-function label:init(parent, text, anchor, origin, color, font)
+function Label:init(parent, text, params)
     self.parent = parent
     self.text = text or ""
-    self.anchor = anchor
-    self.origin = origin
-    self.color = color
-    self.font = font
+    if params then copyData(params, self) end
 end
 
-function label:getSize()
-    return vec(self.font:getWidth(self.text), self.font:getHeight())
+function Label:getSize()
+    return vec(self.width or self.font:getWidth(self.text), self.height or self.font:getHeight())
 end
 
-function label:draw()
+function Label:draw()
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
+    local tw, th = self.font:getWidth(self.text), self.font:getHeight()
+    local s = math.min(w/tw, h/th, 1)
     love.graphics.setFont(self.font)
-    local color = self.color.text or self.color
-    love.graphics.setColor(color)
-    love.graphics.print(self.text, x - w/2, y - h/2)
+    love.graphics.setColor(self.color)
+    love.graphics.print(self.text,
+        self.align == "left" and x - w/2 or self.align == "center" and x - s*tw/2 or self.align == "right" and x + w/2 - s*tw,
+        y - s*th/2,
+    0, s)
 end
 
-return label
+return Label

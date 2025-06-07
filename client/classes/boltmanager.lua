@@ -1,16 +1,16 @@
-local boltManager = floof.class("BoltManager")
+local BoltManager = floof.class("BoltManager")
 
-boltManager.boltSpeed = 30
-boltManager.boltLength = 1
-boltManager.traceDistance = 15
-boltManager.maxBounces = 6
+BoltManager.boltSpeed = 30
+BoltManager.boltLength = 1
+BoltManager.traceDistance = 15
+BoltManager.maxBounces = 6
 
-function boltManager:init(world)
+function BoltManager:init(world)
     self.parent = world
     self.world = world
 end
 
-function boltManager:add(cell, position, direction, light, power)
+function BoltManager:add(cell, position, direction, light, power)
     table.insert(self, {
         ray = tracePartial(self.traceDistance, cell, position, direction, light, power),
         range = self.traceDistance,
@@ -19,7 +19,7 @@ function boltManager:add(cell, position, direction, light, power)
     })
 end
 
-function boltManager:shoot(player)
+function BoltManager:shoot(player)
     table.insert(self, {
         ray = tracePartial(self.traceDistance, player.cell, player.position, player.direction, player.light, player.power),
         range = self.traceDistance,
@@ -29,7 +29,7 @@ function boltManager:shoot(player)
     })
 end
 
-function boltManager:update(dt)
+function BoltManager:update(dt)
     local inc = self.boltSpeed * dt
     for i = #self, 1, -1 do
         local bolt = self[i]
@@ -67,11 +67,11 @@ function boltManager:update(dt)
     end
 end
 
-function boltManager:draw()
+function BoltManager:draw()
     for _, bolt in ipairs(self) do
         drawPartial(bolt.ray, 0.09, bolt.distance - self.boltLength, bolt.distance, 1)
         drawPartial(bolt.ray, 0.03, bolt.distance - self.boltLength, bolt.distance, 1, {1, 1, 1})
     end
 end
 
-return boltManager
+return BoltManager

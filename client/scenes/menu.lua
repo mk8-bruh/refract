@@ -1,65 +1,56 @@
 local menu = {check = true, tostring = "[menu scene]"}
 
 function menu:init()
-    self.title = Title(self, "REFRACT")
-    self.playButton = Button(self, "Play", function()
+    self.title = Title(self, "REFRACT", {origin = "top center"})
+
+    self.layout = VerticalLayout(self, {}, {origin = "top center", align = "top", justify = "stretch", space = 20})
+
+    self.playButton = Button(self.layout, "Play", function()
         switchScene("Game")
     end)
-    self.optionsButton = Button(self, "Options", function()
+    self.optionsButton = Button(self.layout, "Options", function()
         switchScene("Options")
     end)
-    self.quitButton = Button(self, "Quit", function()
+    self.quitButton = Button(self.layout, "Quit", function()
         love.event.quit()
     end)
+
+    self.footer = Label(self, "made by mk8 and Dejv", {origin = "bottom center", font = love.graphics.newFont("fonts/Roboto-Light.ttf", 15)})
 
     self.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
 
     self.music = love.audio.newSource("audio/scifi.mp3", "stream")
+    table.insert(sounds.music, self.music)
     self.music:setLooping(true)
-    self.music:play()
-    self.music:setVolume(settings.volume)
-
-    self.layout = {
-        self.title,
-        self.playButton,
-        self.optionsButton, -- Add the options button to the layout
-        self.quitButton
-    }
-    self.spacing = 20
 
     self:resize(love.graphics.getDimensions())
 end
 
 function menu:resize(w, h)
-    local contentSize = self.spacing * (#self.layout - 1)
-    for _, element in ipairs(self.layout) do
-        local s = element.size or element:getSize()
-        contentSize = contentSize + s.y
-    end
-    local y = h/2 - contentSize/2
-    for _, element in ipairs(self.layout) do
-        local element_h = (element.size or element:getSize()).y
-        element.anchor = vec(w/2, y + element_h/2)
-        element.width = w * 0.2
-        y = y + element_h + self.spacing
-    end
+    self.title.anchor = vec(w/2, h * 0.25)
+    self.footer.anchor = vec(w/2, h - 10)
+    self.layout.width = w * 0.3
+    self.layout.height = self.footer:getTop() - self.title:getBottom() - 30
+    self.layout:setPosition(w/2, (self.footer:getTop() + self.title:getBottom()) / 2)
 end
 
 function menu:draw()
-    -- Draw the background image, scaled to fill the screen (cover, not stretch)
     local w, h = love.graphics.getDimensions()
     local img = self.backgroundImage
-    if img then
-        local iw, ih = img:getWidth(), img:getHeight()
-        local scale = math.max(w / iw, h / ih)
-        local drawW, drawH = iw * scale, ih * scale
-        local offsetX, offsetY = (w - drawW) / 2, (h - drawH) / 2
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.draw(img, offsetX, offsetY, 0, scale, scale)
-    end
+    local iw, ih = img:getWidth(), img:getHeight()
+    local scale = math.max(w / iw, h / ih)
+    local drawW, drawH = iw * scale, ih * scale
+    local offsetX, offsetY = (w - drawW) / 2, (h - drawH) / 2
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(img, offsetX, offsetY, 0, scale, scale)
+end
 
-    -- Draw other UI elements here (title, buttons, etc.)
-    -- Example: self.title:draw(), self.playButton:draw(), etc.
+function menu:enter(prev, ...)
+    self.music:play()
+end
+
+function menu:leave(next)
+    self.music:stop()
 end
 
 return floof.new(menu)

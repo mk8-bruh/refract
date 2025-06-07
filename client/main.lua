@@ -1,27 +1,117 @@
 vec = require "libs.vec"
 floof = require "libs.floof"
-require "libs.geo"
-require "libs.serial"
+require "libs.utils"
 
 function love.load(args)
-    if love.filesystem.getInfo("settings.txt") then
-        local settingsString = love.filesystem.read("settings.txt")
-        settings = deserialize(settingsString)
-    else
-        settings = {
-            volume = 0.5,
-            brightness = 1
+    -- sound library
+    sounds = {
+        music = {},
+        sfx = {}
+    }
+
+    -- settings
+    local settingsData = {
+        volume = {
+            master = 50,
+            music = 100,
+            sfx = 100
+        },
+        displayMode = "Fullscreen",
+        sensitivity = 100,
+        keybinds = {
+            up = "w",
+            down = "s",
+            left = "a",
+            right = "d",
+            shoot = "mouse1",
+            red = "x",
+            green = "c",
+            blue = "v"
         }
-        love.filesystem.write("settings.txt", serialize(settings))
+    }
+    local changeCallbacks = {
+        volume_master = function(value)
+            value = math.max(0, math.min(100, value))
+            settingsData.volume.master = value
+            love.audio.setVolume(value / 100)
+        end,
+        volume_music = function(value)
+            value = math.max(0, math.min(100, value))
+            settingsData.volume.music = value
+            for i, track in ipairs(sounds.music) do
+                track:setVolume(value / 100)
+            end
+        end,
+        volume_sfx = function(value)
+            value = math.max(0, math.min(100, value))
+            settingsData.volume.sfx = value
+            for i, track in ipairs(sounds.sfx) do
+                track:setVolume(value / 100)
+            end
+        end,
+        displayMode = function(value)
+            if value == "Fullscreen" then
+                settingsData.displayMode = value
+                love.window.setMode(0, 0, {fullscreen = true})
+            elseif value == "Windowed" then
+                settingsData.displayMode = value
+                local _, _, flags = love.window.getMode()
+                local width, height = love.window.getDesktopDimensions(flags.display)
+                love.window.setMode(width - 50, height - 100, {fullscreen = false, borderless = false, resizable = true})
+            end
+        end,
+        sensitivity = function(value)
+            value = math.max(10, math.min(200, value))
+            settingsData.sensitivity = value
+        end
+    }
+    settings = setmetatable({}, {
+        __index = function(t, k)
+            t = settingsData
+            while k:match("_") do
+                local k1, k2 = k:match("^(.-)_(.-)$")
+                t, k = t[k1], k2
+            end
+            return t[k]
+        end,
+        __newindex = function(t, k, v)
+            if changeCallbacks[k] then
+                changeCallbacks[k](v)
+            else
+                t = settingsData
+                while k:match("_") do
+                    local k1, k2 = k:match("^(.-)_(.-)$")
+                    t, k = t[k1], k2
+                end
+                t[k] = v
+            end
+        end
+    })
+
+    local defaultSettingsLocation = "settings.txt"
+    function loadSettings(fn)
+        fn = fn or defaultSettingsLocation
+        if love.filesystem.getInfo(fn) then
+            local str = love.filesystem.read(fn)
+            local data = deserialize(str)
+            for k, v in pairs(data) do
+                settings[k] = v
+            end
+        end
+    end
+    function saveSettings(fn)
+        fn = fn or defaultSettingsLocation
+        love.filesystem.write(fn, serialize(settingsData))
     end
 
+    -- register callbacks
     floof.init()
 
     floof.checks.default = false
 
     -- load classes
     classes = {
-        "Element", "Title", "Button", "Label", "ColorIndicator", "BoltManager", "ParticleManager", "RayPreview", "World", "Player"
+        "Element", "VerticalLayout", "HorizontalLayout", "Title", "Button", "Label", "Slider", "ColorIndicator", "BoltManager", "ParticleManager", "RayPreview", "World", "Player"
     }
     for i, n in ipairs(classes) do
         local c = require("classes." .. n:lower())
@@ -55,7 +145,9 @@ function love.load(args)
             end
         end
     end
-    
+
+    loadSettings(defaultSettingsLocation)
+
     switchScene("Menu")
 end
 

@@ -1,11 +1,10 @@
-local colorIndicator = floof.class("ColorIndicator", Element)
+local ColorIndicator = floof.class("ColorIndicator", Element)
 
-function colorIndicator:init(parent, player, anchor, origin, size)
+ColorIndicator.lineWidth = 3
+
+function ColorIndicator:init(parent, params)
     self.parent = parent
-    self.player = player
-    self.anchor = anchor
-    self.origin = origin
-    self.size   = size
+    if params then copyData(params, self) end
 
     local labelFont = love.graphics.newFont(30)
     self.labels = {
@@ -15,7 +14,7 @@ function colorIndicator:init(parent, player, anchor, origin, size)
     }
 end
 
-function colorIndicator:update(dt)
+function ColorIndicator:update(dt)
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local p = vec(x, y)
@@ -31,29 +30,28 @@ function colorIndicator:update(dt)
     end
 end
 
-function colorIndicator:draw()
+local emptyf = function() end
+function ColorIndicator:draw()
     if not self.player then return end
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local s = math.min(w, h)
     -- mask
-    love.graphics.stencil(function()
-        love.graphics.rectangle("fill", x - w/2, y - h/2, w, h)
-    end, "replace", 0)
-    love.graphics.setLineWidth(3)
+    love.graphics.stencil(emptyf)
+    love.graphics.setLineWidth(self.lineWidth)
     -- toggles
     love.graphics.setColor(self.player.lightMap.r.color)
-    love.graphics.circle(self.player.lightToggles.red and "fill" or "line", self.labels.r.anchor.x, self.labels.r.anchor.y, s/6)
+    love.graphics.circle(self.player.lightToggles.red   and "fill" or "line", self.labels.r.anchor.x, self.labels.r.anchor.y, self.player.lightToggles.red   and s/6 or s/6 - self.lineWidth/2)
     love.graphics.stencil(function()
         love.graphics.circle("fill", self.labels.r.anchor.x, self.labels.r.anchor.y, s/6 * 1.1)
     end, "replace", 1, true)
     love.graphics.setColor(self.player.lightMap.g.color)
-    love.graphics.circle(self.player.lightToggles.green and "fill" or "line", self.labels.g.anchor.x, self.labels.g.anchor.y, s/6)
+    love.graphics.circle(self.player.lightToggles.green and "fill" or "line", self.labels.g.anchor.x, self.labels.g.anchor.y, self.player.lightToggles.green and s/6 or s/6 - self.lineWidth/2)
     love.graphics.stencil(function()
         love.graphics.circle("fill", self.labels.g.anchor.x, self.labels.g.anchor.y, s/6 * 1.1)
     end, "replace", 1, true)
     love.graphics.setColor(self.player.lightMap.b.color)
-    love.graphics.circle(self.player.lightToggles.blue and "fill" or "line", self.labels.b.anchor.x, self.labels.b.anchor.y, s/6)
+    love.graphics.circle(self.player.lightToggles.blue  and "fill" or "line", self.labels.b.anchor.x, self.labels.b.anchor.y, self.player.lightToggles.blue  and s/6 or s/6 - self.lineWidth/2)
     love.graphics.stencil(function()
         love.graphics.circle("fill", self.labels.b.anchor.x, self.labels.b.anchor.y, s/6 * 1.1)
     end, "replace", 1, true)
@@ -69,4 +67,4 @@ function colorIndicator:draw()
     love.graphics.setStencilTest()
 end
 
-return colorIndicator
+return ColorIndicator

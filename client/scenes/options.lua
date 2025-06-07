@@ -1,115 +1,89 @@
 local options = {check = true, tostring = "[options scene]"}
 
+local function SettingsSlider(parent, name, property, min, max, params)
+    local div = HorizontalLayout(parent, {}, {align = "center", space = 10, justify = "middle", property = property})
+    local nameLabel = Label(div, name, {align = "right"})
+    local slider = Slider(div, min, max, settings[property], function(self, value)
+        settings[property] = value
+        self.value = settings[property]
+    end)
+    local valueLabel = Label(div, tostring(settings[property]), {align = "left"})
+    function slider:update(dt)
+        valueLabel.text = tostring(math.floor(self.value + 0.5))
+    end
+    function div:update(dt)
+        self.class.update(self, dt)
+
+        nameLabel.width = self.width * 0.2
+        slider.width = self.width * 0.6
+        valueLabel.width = self.width * 0.2
+
+        nameLabel.height = self.height
+        slider.height = self.height * 0.7
+        valueLabel.height = self.height
+    end
+    if params then copyData(params, div) end
+    return div
+end
+
 function options:init()
-    self.title = Title(self, "OPTIONS")
+    self.title = Title(self, "OPTIONS", {origin = "top center"})
 
-    self.volumeUpButton = Button(self, "Volume +", function()
-        settings.volume = math.min(1, settings.volume + 0.1)
-        love.audio.setVolume(settings.volume)
-        self.volumeLabel.text = string.format("Volume: %d%%", settings.volume * 100)
+    self.layout = VerticalLayout(self, {}, {width = 500, origin = "top center", align = "top", justify = "stretch", space = 20})
+
+    self.displayModes = {"Fullscreen", "Windowed"}
+    self.nextDisplayMode = {}
+    for i, m in ipairs(self.displayModes) do
+        self.nextDisplayMode[m] = self.displayModes[i % #self.displayModes + 1]
+    end
+
+    Label(self.layout, "Display")
+    self.displayModeButton = Button(self.layout, settings.displayMode, function()
+        local mode = self.nextDisplayMode[settings.displayMode]
+        settings.displayMode = mode
+        self.displayModeButton.text = mode
     end)
 
-    self.volumeDownButton = Button(self, "Volume -", function()
-        settings.volume = math.max(0, settings.volume - 0.1)
-        love.audio.setVolume(settings.volume)
-        self.volumeLabel.text = string.format("Volume: %d%%", settings.volume * 100)
-    end)
+    Label(self.layout, "Volume")
+    self.volumeMasterSlider = SettingsSlider(self.layout, "Master", "volume_master", 0, 100, {width = 500, height = 40})
+    self.volumeMasterSlider = SettingsSlider(self.layout, "Music",  "volume_music",  0, 100, {width = 500, height = 40})
+    self.volumeMasterSlider = SettingsSlider(self.layout, "SFX",    "volume_sfx",    0, 100, {width = 500, height = 40})
 
-    self.volumeLabel = Label(self, string.format("Volume: %d%%", settings.volume * 100))
-    self.volumeLabel.color = {fill={0,0,0,0}, outline={0,0,0,0}, text={1,1,1}} 
-
-    self.brightnessUpButton = Button(self, "Brightness +", function()
-        settings.brightness = math.min(2, settings.brightness + 0.1)
-        self.brightnessLabel.text = string.format("Brightness: %.0f%%", settings.brightness * 100)
-    end)
-
-    self.brightnessDownButton = Button(self, "Brightness -", function()
-        settings.brightness = math.max(0, settings.brightness - 0.1)
-        self.brightnessLabel.text = string.format("Brightness: %.0f%%", settings.brightness * 100)
-    end)
-
-    self.brightnessLabel = Label(self, string.format("Brightness: %.0f%%", settings.brightness * 100))
-    self.brightnessLabel.color = {fill={0,0,0,0}, outline={0,0,0,0}, text={1,1,1}}
+    Label(self.layout, "Input")
+    self.sensitivitySlider = SettingsSlider(self.layout, "Sensitivity", "sensitivity", 10, 200, {width = 500, height = 40})
 
     self.backButton = Button(self, "Back", function()
         switchScene("Menu")
-    end)
-
-    self.displayModes = {"Fullscreen", "Windowed"}
-    self.displayModeIndex = 1
-
-    self.displayModeButton = Button(self, "Display: " .. self.displayModes[self.displayModeIndex], function()
-        self.displayModeIndex = self.displayModeIndex % #self.displayModes + 1
-        local mode = self.displayModes[self.displayModeIndex]
-        self.displayModeButton.text = "Display: " .. mode
-
-        if mode == "Windowed" then
-            love.window.setMode(1920, 1080, {fullscreen = false, borderless = false})
-        elseif mode == "Fullscreen" then
-            love.window.setMode(0, 0, {fullscreen = true})
-        end
-    end)
+    end, {origin = "bottom center"})
 
     self.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
-
-    self.layout = {
-        self.title,
-        self.displayModeButton,
-        self.brightnessLabel,
-        self.brightnessUpButton,
-        self.brightnessDownButton,
-        self.volumeLabel,
-        self.volumeUpButton,
-        self.volumeDownButton,
-        self.backButton
-    }
-    self.spacing = 20
 
     self:resize(love.graphics.getDimensions())
 end
 
+function options:enter(prev, ...)
+    self.displayModeButton.text = settings["displayMode"]
+    self.volumeMasterSlider.value = settings["volume_master"]
+    self.sensitivitySlider.value = settings["sensitivity"]
+end
+
 function options:resize(w, h)
-    local contentSize = self.spacing * (#self.layout - 1)
-    for _, element in ipairs(self.layout) do
-        local s = element.size or element:getSize()
-        contentSize = contentSize + s.y
-    end
-    local y = h/2 - contentSize/2
-    for _, element in ipairs(self.layout) do
-        local element_h = (element.size or element:getSize()).y
-        element.anchor = vec(w/2, y + element_h/2)
-        element.width = w * 0.2
-        y = y + element_h + self.spacing
-    end
+    self.title.anchor = vec(w/2, 30)
+    self.backButton.anchor = vec(w/2, h - 10)
+    self.layout.width = w * 0.5
+    self.layout.height = self.backButton:getTop() - self.title:getBottom() - 30
+    self.layout:setPosition(w/2, (self.backButton:getTop() + self.title:getBottom()) / 2)
 end
 
 function options:draw()
-    -- Draw the background image, scaled to fill the screen (cover, not stretch)
     local w, h = love.graphics.getDimensions()
     local img = self.backgroundImage
-    if img then
-        local iw, ih = img:getWidth(), img:getHeight()
-        local scale = math.max(w / iw, h / ih)
-        local drawW, drawH = iw * scale, ih * scale
-        local offsetX, offsetY = (w - drawW) / 2, (h - drawH) / 2
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.draw(img, offsetX, offsetY, 0, scale, scale)
-    end
-
-    -- Draw UI elements
-    for _, element in ipairs(self.layout) do
-        if element.draw then element:draw() end
-    end
-
-    -- Apply brightness overlay
-    if settings.brightness < 1 then
-        love.graphics.setColor(0, 0, 0, 1 - settings.brightness)
-        love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
-    elseif settings.brightness > 1 then
-        love.graphics.setColor(1, 1, 1, settings.brightness - 1)
-        love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
-    end
-    love.graphics.setColor(1, 1, 1, 1) -- Reset color
+    local iw, ih = img:getWidth(), img:getHeight()
+    local scale = math.max(w / iw, h / ih)
+    local drawW, drawH = iw * scale, ih * scale
+    local offsetX, offsetY = (w - drawW) / 2, (h - drawH) / 2
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(img, offsetX, offsetY, 0, scale, scale)
 end
 
 return floof.new(options)

@@ -1,11 +1,11 @@
-local player = floof.class("Player")
+local Player = floof.class("Player")
 
 local light = require "data.light"
 
-player.radius = 0.25
-player.moveSpeed = 5
-player.sensitivity = 0.002
-player.lightMap = {
+Player.radius = 0.25
+Player.moveSpeed = 5
+Player.sensitivity = 0.002
+Player.lightMap = {
     r = light.red,
     g = light.green,
     b = light.blue,
@@ -14,8 +14,8 @@ player.lightMap = {
     rb = light.magenta,
     rgb = light.white
 }
-player.power = 1
-player.keybinds = {
+Player.power = 1
+Player.keybinds = {
     up = "w",
     down = "s",
     left = "a",
@@ -26,7 +26,7 @@ player.keybinds = {
     blue = "v"
 }
 
-function player:init(world, position, direction, keybinds)
+function Player:init(world, position, direction, sensitivity, keybinds)
     self.parent = world
     self.world = world
     self.position = position or vec.zero
@@ -40,10 +40,11 @@ function player:init(world, position, direction, keybinds)
             self.cell = cell
         end
     end
-    self.keybinds = setmetatable(keybinds or {}, {__index = player.keybinds})
+    self.sensitivity = sensitivity
+    self.keybinds = setmetatable(keybinds or {}, {__index = Player.keybinds})
 end
 
-function player:moveTo(position)
+function Player:moveTo(position)
     for _, edge in ipairs(self.cell.edges) do
         if edge.wall then
             local t = self.radius + edge.wall.thickness/2
@@ -77,11 +78,11 @@ function player:moveTo(position)
     end
 end
 
-function player:move(delta)
+function Player:move(delta)
     self:moveTo(self.position + delta)
 end
 
-function player:update(dt)
+function Player:update(dt)
     if self.isActive then
         local move_inp = vec(
             (love.keyboard.isDown(self.keybinds.right) and 1 or 0) - (love.keyboard.isDown(self.keybinds.left) and 1 or 0),
@@ -92,11 +93,11 @@ function player:update(dt)
     end
 end
 
-function player:mousedelta(x, y)
-    self.direction = self.direction:rotate(x * self.sensitivity)
+function Player:mousedelta(x, y)
+    self.direction = self.direction:rotate(x * Player.sensitivity * (self.sensitivity or 100) / 100)
 end
 
-function player:keypressed(key)
+function Player:keypressed(key)
     if key == self.keybinds.shoot then
         if self.light then
             self.world.boltManager:shoot(self)
@@ -111,7 +112,7 @@ function player:keypressed(key)
     self.light = self.lightMap[(self.lightToggles.red and "r" or "") .. (self.lightToggles.green and "g" or "") .. (self.lightToggles.blue and "b" or "")]
 end
 
-function player:draw()
+function Player:draw()
     love.graphics.setLineWidth(0.025)
     love.graphics.setColor(1, 1, 1)
     love.graphics.circle("fill", self.position.x, self.position.y, self.radius)
@@ -119,4 +120,4 @@ function player:draw()
     love.graphics.circle("line", self.position.x, self.position.y, self.radius)
 end
 
-return player
+return Player

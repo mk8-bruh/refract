@@ -1,83 +1,87 @@
-local button = floof.class("Button", Element)
+local Button = floof.class("Button", Element)
 
-button.color = {
-    outline = {0, 0, 0},
-    fill = {1, 1, 1},
-    text = {0, 0, 0},
+Button.color = {
+    outline = {0.2, 0.2, 0.3},
+    fill = {0.92, 0.94, 1},
+    text = {0.1, 0.1, 0.2},
     hovered = {
-        fill = {0.7, 0.7, 0.7}
+        fill = {1, 1, 1},
+        text = {0.2, 0.2, 0.3}
     },
     pressed = {
-        fill = {0, 0, 0},
+        fill = {0.6, 0.6, 0.7},
         text = {1, 1, 1}
-    }
+    },
+    shadow = {0, 0, 0, 0.2}
 }
-button.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 40) -- Changed font file to "Roboto-Black.ttf" in fonts directory
-button.outlineWidth = 3
-button.padding = vec(10, 10)
-button.cornerRadius = 10
+Button.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 40)
+Button.outlineWidth = 3
+Button.padding = vec(10, 10)
+Button.cornerRadius = 10
 
-function button:init(parent, text, action, anchor, origin, color, font)
+function Button:init(parent, text, action, params)
     self.parent = parent
     self.text = text
     self.action = action
-    self.anchor = anchor
-    self.origin = origin
-    self.color = color
-    self.font = font
+    if params then copyData(params, self) end
 end
 
-function button:getSize()
-    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x), self.height or (self.font:getHeight() + self.padding.y))
+function Button:getSize()
+    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x * 2), self.height or (self.font:getHeight() + self.padding.y * 2))
 end
 
-function button:draw()
+function Button:draw()
     local x, y = self:getPosition():unpack()
     local w, h = self:getSize():unpack()
     local tw, th = self.font:getWidth(self.text), self.font:getHeight()
+    local ts = math.min((w - self.padding.x * 2) / tw, (h - self.padding.y * 2) / th, 1)
 
     -- Shadow
-    love.graphics.setColor(0, 0, 0, 0.18)
+    love.graphics.setColor(self.color.shadow)
     love.graphics.rectangle("fill", x - w/2 + 2, y - h/2 + 4, w, h, self.cornerRadius + 2)
 
-    -- Button fill color
-    local fill
-    if self.isPressed then
-        fill = {0.6, 0.6, 0.7}
-    elseif self.isHovered then
-        fill = {1, 1, 1}
-    else
-        fill = {0.92, 0.94, 1}
-    end
-    love.graphics.setColor(fill)
+    -- Fill
+    love.graphics.setColor(
+        self.isPressed and self.color.pressed and self.color.pressed.fill or
+        self.isHovered and self.color.hovered and self.color.hovered.fill or
+        self.color.fill
+    )
     love.graphics.rectangle("fill", x - w/2, y - h/2, w, h, self.cornerRadius)
 
     -- Outline
-    love.graphics.setColor(0.2, 0.2, 0.3)
+    love.graphics.setColor(
+        self.isPressed and self.color.pressed and self.color.pressed.outline or
+        self.isHovered and self.color.hovered and self.color.hovered.outline or
+        self.color.outline
+    )
     love.graphics.setLineWidth(self.outlineWidth)
     love.graphics.rectangle("line", x - w/2, y - h/2, w, h, self.cornerRadius)
 
     -- Text shadow
     love.graphics.setFont(self.font)
-    love.graphics.setColor(0, 0, 0, 0.25)
-    love.graphics.print(self.text, x - tw/2 + 2, y - th/2 + 2)
+    love.graphics.setColor(self.color.shadow)
+    love.graphics.print(self.text, x - ts*tw/2 + 2, y - ts*th/2 + 2, 0, ts)
 
     -- Text
-    local textColor = (self.isPressed and {1,1,1}) or (self.isHovered and {0.2,0.2,0.3}) or {0.1,0.1,0.2}
-    love.graphics.setColor(textColor)
-    love.graphics.print(self.text, x - tw/2, y - th/2)
+    love.graphics.setFont(self.font)
+    love.graphics.setColor(
+        self.isPressed and self.color.pressed and self.color.pressed.text or
+        self.isHovered and self.color.hovered and self.color.hovered.text or
+        self.color.text
+    )
+    love.graphics.print(self.text, x - ts*tw/2, y - ts*th/2, 0, ts)
 end
 
-function button:pressed(x, y, id)
+function Button:pressed(x, y, id)
     if type(id) == "number" and id > 1 then
         return false
     end
 end
 
-function button:released(x, y, id)
+function Button:released(x, y, id)
     if self.action then
         self:action()
     end
 end
 
-return button
+return Button

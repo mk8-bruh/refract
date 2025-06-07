@@ -1,18 +1,18 @@
-local particleManager = floof.class("ParticleManager")
+local ParticleManager = floof.class("ParticleManager")
 
-particleManager.particleLifetime = 1
-particleManager.particleEaseOut = 4
-particleManager.particleStartOpacity = 1
-particleManager.particleEndOpacity = 0
-particleManager.particleStartRadius = 0.02
-particleManager.particleEndRadius = 0.2
+ParticleManager.particleLifetime = 1
+ParticleManager.particleEaseOut = 4
+ParticleManager.particleStartOpacity = 1
+ParticleManager.particleEndOpacity = 0
+ParticleManager.particleStartRadius = 0.02
+ParticleManager.particleEndRadius = 0.2
 
-function particleManager:init(world)
+function ParticleManager:init(world)
     self.parent = world
     self.world = world
 end
 
-function particleManager:add(position, color)
+function ParticleManager:add(position, color)
     table.insert(self, {
         position = position,
         color = color,
@@ -20,7 +20,7 @@ function particleManager:add(position, color)
     })
 end
 
-function particleManager:update(dt)
+function ParticleManager:update(dt)
     for i = #self, 1, -1 do
         local particle = self[i]
         particle.lifetime = particle.lifetime + dt
@@ -30,7 +30,7 @@ function particleManager:update(dt)
     end
 end
 
-function particleManager:draw()
+function ParticleManager:draw()
     for _, particle in ipairs(self) do
         local t = 1 - (-(particle.lifetime/self.particleLifetime - 1)) ^ self.particleEaseOut
         love.graphics.setColor(particle.color[1], particle.color[2], particle.color[3], self.particleStartOpacity + (self.particleEndOpacity - self.particleStartOpacity) * t)
@@ -38,4 +38,4 @@ function particleManager:draw()
     end
 end
 
-return particleManager
+return ParticleManager
