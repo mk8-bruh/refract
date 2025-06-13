@@ -29,7 +29,7 @@ end
 function options:init()
     self.title = Title(self, "OPTIONS", {origin = "top center"})
 
-    self.layout = VerticalLayout(self, {}, {width = 500, origin = "top center", align = "top", justify = "stretch", space = 20})
+    self.layout = VerticalLayout(self, {}, {origin = "top center", align = "top", justify = "stretch", space = 20})
 
     self.displayModes = {"Fullscreen", "Windowed"}
     self.nextDisplayMode = {}
@@ -46,8 +46,8 @@ function options:init()
 
     Label(self.layout, "Volume")
     self.volumeMasterSlider = SettingsSlider(self.layout, "Master", "volume_master", 0, 100, {width = 500, height = 40})
-    self.volumeMasterSlider = SettingsSlider(self.layout, "Music",  "volume_music",  0, 100, {width = 500, height = 40})
-    self.volumeMasterSlider = SettingsSlider(self.layout, "SFX",    "volume_sfx",    0, 100, {width = 500, height = 40})
+    self.volumeMusicSlider  = SettingsSlider(self.layout, "Music",  "volume_music",  0, 100, {width = 500, height = 40})
+    self.volumeSfxSlider    = SettingsSlider(self.layout, "SFX",    "volume_sfx",    0, 100, {width = 500, height = 40})
 
     Label(self.layout, "Input")
     self.sensitivitySlider = SettingsSlider(self.layout, "Sensitivity", "sensitivity", 10, 200, {width = 500, height = 40})
@@ -57,14 +57,14 @@ function options:init()
     end, {origin = "bottom center"})
 
     self.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
-
-    self:resize(love.graphics.getDimensions())
 end
 
 function options:enter(prev, ...)
-    self.displayModeButton.text = settings["displayMode"]
+    self.displayModeButton.text   = settings["displayMode"  ]
     self.volumeMasterSlider.value = settings["volume_master"]
-    self.sensitivitySlider.value = settings["sensitivity"]
+    self.volumeMusicSlider.value  = settings["volume_music" ]
+    self.volumeSfxSlider.value    = settings["volume_sfx"   ]
+    self.sensitivitySlider.value  = settings["sensitivity"  ]
 end
 
 function options:resize(w, h)
@@ -75,7 +75,7 @@ function options:resize(w, h)
     self.layout:setPosition(w/2, (self.backButton:getTop() + self.title:getBottom()) / 2)
 end
 
-function options:draw()
+function options:predraw()
     local w, h = love.graphics.getDimensions()
     local img = self.backgroundImage
     local iw, ih = img:getWidth(), img:getHeight()

@@ -59,6 +59,7 @@ function love.load(args)
                 local width, height = love.window.getDesktopDimensions(flags.display)
                 love.window.setMode(width - 50, height - 100, {fullscreen = false, borderless = false, resizable = true})
             end
+            love.resize(love.graphics.getDimensions())
         end,
         sensitivity = function(value)
             value = math.max(10, math.min(200, value))
@@ -106,7 +107,7 @@ function love.load(args)
 
     -- register callbacks
     floof.init()
-
+    
     floof.checks.default = false
 
     -- load classes

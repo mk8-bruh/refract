@@ -26,8 +26,12 @@ function Button:init(parent, text, action, params)
     if params then copyData(params, self) end
 end
 
-function Button:getSize()
-    return vec(self.width or (self.font:getWidth(self.text) + self.padding.x * 2), self.height or (self.font:getHeight() + self.padding.y * 2))
+function Button:getContentWidth()
+    return self.font:getWidth(self.text) + self.padding.x * 2
+end
+
+function Button:getContentHeight()
+    return self.font:getHeight() + self.padding.y * 2
 end
 
 function Button:draw()

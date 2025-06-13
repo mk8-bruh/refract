@@ -7,7 +7,6 @@ function game:init()
         self.text = ("%d FPS"):format(love.timer.getFPS())
     end
     self.colorIndicator = ColorIndicator(self.ui, {origin = "bottom right"})
-    self:resize(love.graphics.getDimensions())
 end
 
 function game:enter(prev, seed)
@@ -31,7 +30,7 @@ end
 
 function game:resize(w, h)
     self.fpsCounter.anchor = vec(w, 0)
-    self.colorIndicator.size = vec.one * math.min(w, h) * 0.2
+    self.colorIndicator.width, self.colorIndicator.height = math.min(w, h) * 0.2, math.min(w, h) * 0.2
     self.colorIndicator.anchor = vec(w, h)
 end
 

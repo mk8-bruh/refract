@@ -31,6 +31,14 @@ function Title:generateScatter()
     end
 end
 
+function Title:getContentWidth()
+    return self.font:getWidth(self.text)
+end
+
+function Title:getContentHeight()
+    return self.font:getHeight() + self.scatter * 2
+end
+
 function Title:update(dt)
     if self.typing then
         self.timer = self.timer + dt
@@ -90,10 +98,6 @@ function Title:draw()
 
         offset_x = offset_x + char_w
     end
-end
-
-function Title:getSize()
-    return vec(self.font:getWidth(self.text), self.font:getHeight() + self.scatter * 2)
 end
 
 return Title

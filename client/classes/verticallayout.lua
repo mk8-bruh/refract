@@ -56,6 +56,17 @@ function VerticalLayout:update(dt)
     end
     local d = self.scrollDeceleration * dt
     self.scrollVelocity = math.abs(self.scrollVelocity) <= d and 0 or self.scrollVelocity > 0 and self.scrollVelocity - d or self.scrollVelocity + d
+    if ch > h then
+        if self.align == "top" then
+            self.scroll = math.max(0, math.min(ch - h, self.scroll or 0))
+        elseif self.align == "bottom" then
+            self.scroll = math.max(h - ch, math.min(0, self.scroll or 0))
+        else
+            self.scroll = math.max((h - ch) / 2, math.min((ch - h) / 2, self.scroll or 0))
+        end
+    else
+        self.scroll = 0
+    end
     self.scroll = math.min(0, math.max(ch - h, self.scroll))
 
     if #self.items == 1 then
@@ -72,16 +83,16 @@ function VerticalLayout:update(dt)
         )
     elseif #self.items > 1 then
         local space = self.space or 0
-        local t = y - h/2 - self.scroll
-        if ch <= h then
-            if self.align == "middle" then
-                t = y - ch/2
-            elseif self.align == "stretch" then
-                space = (h - ch) / (#self.items - 1)
-            elseif self.align == "space" then
-                space = (h - ch) / (#self.items + 1)
-                t = t + space
-            end
+        local t = y - ch/2 - self.scroll
+        if self.align == "top" then
+            t = y - h/2 - self.scroll
+        elseif self.align == "bottom" then
+            t = y + h/2 - ch - self.scroll
+        elseif ch <= h and self.align == "stretch" then
+            space = (h - ch) / (#self.items - 1)
+        elseif ch <= h and self.align == "space" then
+            space = (h - ch) / (#self.items + 1)
+            t = y - h/2 + space
         end
         for i, item in ipairs(self.items) do
             local iw, ih = item:getSize():unpack()
@@ -92,7 +103,7 @@ function VerticalLayout:update(dt)
                 x,
                 t + ih/2
             )
-            if self.justify == "stretch" then
+            if justify == "stretch" then
                 item.width = w
             end
             t = t + ih + space
@@ -124,15 +135,6 @@ function VerticalLayout:moved(x, y, dx, dy, id)
         self.scrollVelocity = -dy / love.timer.getDelta()
     end
     return true
-end
-
-function VerticalLayout:draw()
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    love.graphics.stencil(function()
-        love.graphics.rectangle("fill", x - w/2, y - h/2, w, h)
-    end, "replace", 1)
-    love.graphics.setStencilTest("equal", 1)
 end
 
 return VerticalLayout

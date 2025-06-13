@@ -59,10 +59,10 @@ function ColorIndicator:draw()
     love.graphics.setStencilTest("equal", 0)
     if self.player.light then
         love.graphics.setColor(self.player.light.color)
-        love.graphics.circle("fill", x, y, s/3)
+        love.graphics.circle("fill", x, y, s/4)
     else
         love.graphics.setColor(self.player.lightMap.rgb.color)
-        love.graphics.circle("line", x, y, s/3)
+        love.graphics.circle("line", x, y, s/4)
     end
     love.graphics.setStencilTest()
 end

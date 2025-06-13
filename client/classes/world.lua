@@ -32,13 +32,13 @@ end
 
 function World:added(object)
     if object:is(ParticleManager) then
-        object.z = -3
+        object.z = 1
     elseif object:is(RayPreview) then
-        object.z = -2
+        object.z = 2
     elseif object:is(BoltManager) then
-        object.z = -1
+        object.z = 3
     elseif object:is(Player) then
-        object.z = 0
+        object.z = 4
         table.insert(self.players, object)
     end
 end
@@ -57,7 +57,7 @@ function World:removed(object)
     end
 end
 
-function World:draw()
+function World:predraw()
     local w, h = love.graphics.getWidth(), love.graphics.getHeight()
     if self.tracking then
         applyCameraTransform(
@@ -96,7 +96,7 @@ function World:draw()
     love.graphics.setStencilTest()
 end
 
-function World:latedraw()
+function World:postdraw()
     for _, cell in pairs(self.cells) do
         if cell.wall then
             love.graphics.stencil(function()

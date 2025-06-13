@@ -10,8 +10,12 @@ function Label:init(parent, text, params)
     if params then copyData(params, self) end
 end
 
-function Label:getSize()
-    return vec(self.width or self.font:getWidth(self.text), self.height or self.font:getHeight())
+function Label:getContentWidth()
+    return self.font:getWidth(self.text)
+end
+
+function Label:getContentHeight()
+    return self.font:getHeight()
 end
 
 function Label:draw()

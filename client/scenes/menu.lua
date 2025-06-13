@@ -22,8 +22,6 @@ function menu:init()
     self.music = love.audio.newSource("audio/scifi.mp3", "stream")
     table.insert(sounds.music, self.music)
     self.music:setLooping(true)
-
-    self:resize(love.graphics.getDimensions())
 end
 
 function menu:resize(w, h)
@@ -34,7 +32,7 @@ function menu:resize(w, h)
     self.layout:setPosition(w/2, (self.footer:getTop() + self.title:getBottom()) / 2)
 end
 
-function menu:draw()
+function menu:predraw()
     local w, h = love.graphics.getDimensions()
     local img = self.backgroundImage
     local iw, ih = img:getWidth(), img:getHeight()

@@ -26,7 +26,7 @@ function Element:setPosition(x, y)
 end
 
 function Element:getSize()
-    return self.size or vec.zero
+    return vec(self.width or self.getContentWidth and self:getContentWidth() or 0, self.height or self.getContentHeight and self:getContentHeight() or 0)
 end
 
 function Element:getLeft()

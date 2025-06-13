@@ -68,16 +68,16 @@ function HorizontalLayout:update(dt)
         )
     elseif #self.items > 1 then
         local space = self.space or 0
-        local l = x - w/2 - self.scroll
-        if cw <= w then
-            if self.align == "center" then
-                l = x - cw/2
-            elseif self.align == "stretch" then
-                space = (w - cw) / (#self.items - 1)
-            elseif self.align == "space" then
-                space = (w - cw) / (#self.items + 1)
-                l = l + space
-            end
+        local l = x - cw/2 - self.scroll
+        if self.align == "left" then
+            l = x - w/2 - self.scroll
+        elseif self.align == "bottom" then
+            l = x + w/2 - cw - self.scroll
+        elseif cw <= w and self.align == "stretch" then
+            space = (w - cw) / (#self.items - 1)
+        elseif cw <= w and self.align == "space" then
+            space = (w - cw) / (#self.items + 1)
+            l = x - w/2 + space
         end
         for i, item in ipairs(self.items) do
             local iw, ih = item:getSize():unpack()
@@ -88,7 +88,7 @@ function HorizontalLayout:update(dt)
                 justify == "bottom" and y + h/2 - ih/2 or
                 y
             )
-            if self.align == "stretch" then
+            if justify == "stretch" then
                 item.height = h
             end
             l = l + iw + space
@@ -120,15 +120,6 @@ function HorizontalLayout:moved(x, y, dx, dy, id)
         self.scrollVelocity = -dx / love.timer.getDelta()
     end
     return true
-end
-
-function HorizontalLayout:draw()
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    love.graphics.stencil(function()
-        love.graphics.rectangle("fill", x - w/2, y - h/2, w, h)
-    end, "replace", 1)
-    love.graphics.setStencilTest("equal", 1)
 end
 
 return HorizontalLayout
