@@ -96,7 +96,10 @@ function love.load(args)
             local str = love.filesystem.read(fn)
             local data = deserialize(str)
             for k, v in pairs(data) do
-                settings[k] = v
+                settingsData[k] = v
+            end
+            for k, f in pairs(changeCallbacks) do
+                f(settings[k])
             end
         end
     end
@@ -147,11 +150,11 @@ function love.load(args)
         end
     end
 
-    loadSettings(defaultSettingsLocation)
+    loadSettings()
 
     switchScene("Menu")
 end
 
 function love.quit()
-    love.filesystem.write("settings.txt", serialize(settings))
+    saveSettings()
 end
