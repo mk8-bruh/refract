@@ -10,7 +10,7 @@ function love.load(args)
     }
 
     -- settings
-    local settingsData = {
+    local defaultSettings = {
         volume = {
             master = 50,
             music = 100,
@@ -29,6 +29,7 @@ function love.load(args)
             blue = "v"
         }
     }
+    local settingsData = copyData(defaultSettings, {})
     local changeCallbacks = {
         volume_master = function(value)
             value = math.max(0, math.min(100, value))
@@ -90,6 +91,12 @@ function love.load(args)
     })
 
     local defaultSettingsLocation = "settings.txt"
+    function resetSettings()
+        copyData(defaultSettings, settingsData)
+        for k, f in pairs(changeCallbacks) do
+            f(settings[k])
+        end
+    end
     function loadSettings(fn)
         fn = fn or defaultSettingsLocation
         if love.filesystem.getInfo(fn) then
@@ -129,29 +136,17 @@ function love.load(args)
     for i, n in ipairs(scenes) do
         local s = require("scenes." .. n:lower())
         scenes[n], scenes[i] = s, s
-        s.enabledSelf = false
     end
 
     function switchScene(scene, ...)
         if scenes[scene] then scene = scenes[scene] end
-        if floof.is(scene) and scene.parent == floof.root then
-            local prev = floof.root.activeChild
-            if prev then
-                if prev.leave then
-                    prev:leave(scene)
-                end
-                prev.enabledSelf = false
-            end
-            scene.enabledSelf = true
-            floof.root.activeChild = scene
-            if scene.enter then
-                scene:enter(prev, ...)
-            end
+        if floof.is(scene) then
+            floof.setRoot(scene, ...)
         end
     end
 
+    resetSettings()
     loadSettings()
-
     switchScene("Menu")
 end
 

@@ -6,6 +6,7 @@ function copyData(src, dest)
     for k, v in pairs(src) do
         dest[k] = v
     end
+    return dest
 end
 
 function mergeData(a, b)
@@ -124,8 +125,8 @@ end
 
 function circumcenter(a, b, c)
     return vec(
-        (a:dot(a) * (b.y - c.y) + b:dot(b) * (c.y - a.y) + c:dot(c) * (a.y - b.y)),
-        (a:dot(a) * (c.x - b.x) + b:dot(b) * (a.x - c.x) + c:dot(c) * (b.x - a.x))
+        (a.sqrLen * (b.y - c.y) + b.sqrLen * (c.y - a.y) + c.sqrLen * (a.y - b.y)),
+        (a.sqrLen * (c.x - b.x) + b.sqrLen * (a.x - c.x) + c.sqrLen * (b.x - a.x))
     ) / 2 / (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y))
 end
 

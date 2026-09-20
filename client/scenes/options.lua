@@ -2,25 +2,25 @@ local options = {check = true, tostring = "[options scene]"}
 
 local function SettingsSlider(parent, name, property, min, max, params)
     local div = HorizontalLayout(parent, {}, {align = "center", space = 10, justify = "middle", property = property})
-    local nameLabel = Label(div, name, {align = "right"})
-    local slider = Slider(div, min, max, settings[property], function(self, value)
+    div.nameLabel = Label(div, name, {align = "right"})
+    div.slider = Slider(div, min, max, settings[property], function(self, value)
         settings[property] = value
         self.value = settings[property]
     end)
-    local valueLabel = Label(div, tostring(settings[property]), {align = "left"})
-    function slider:update(dt)
-        valueLabel.text = tostring(math.floor(self.value + 0.5))
+    div.valueLabel = Label(div, tostring(settings[property]), {align = "left"})
+    function div.slider:update(dt)
+        div.valueLabel.text = tostring(math.floor(self.value + 0.5))
     end
     function div:update(dt)
         self.class.update(self, dt)
 
-        nameLabel.width = self.width * 0.2
-        slider.width = self.width * 0.6
-        valueLabel.width = self.width * 0.2
+        self.nameLabel.width = self.width * 0.2
+        self.slider.width = self.width * 0.6
+        self.valueLabel.width = self.width * 0.2
 
-        nameLabel.height = self.height
-        slider.height = self.height * 0.7
-        valueLabel.height = self.height
+        self.nameLabel.height = self.height
+        self.slider.height = self.height * 0.7
+        self.valueLabel.height = self.height
     end
     if params then copyData(params, div) end
     return div
@@ -60,11 +60,13 @@ function options:init()
 end
 
 function options:enter(prev, ...)
-    self.displayModeButton.text   = settings["displayMode"  ]
-    self.volumeMasterSlider.value = settings["volume_master"]
-    self.volumeMusicSlider.value  = settings["volume_music" ]
-    self.volumeSfxSlider.value    = settings["volume_sfx"   ]
-    self.sensitivitySlider.value  = settings["sensitivity"  ]
+    self.displayModeButton.text          = settings["displayMode"  ]
+    self.volumeMasterSlider.slider.value = settings["volume_master"]
+    self.volumeMusicSlider.slider.value  = settings["volume_music" ]
+    self.volumeSfxSlider.slider.value    = settings["volume_sfx"   ]
+    self.sensitivitySlider.slider.value  = settings["sensitivity"  ]
+
+    print(settings["displayMode"], settings["volume_master"], settings["volume_music"], settings["volume_sfx"], settings["sensitivity"])
 end
 
 function options:resize(w, h)
