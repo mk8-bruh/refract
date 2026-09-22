@@ -1,35 +1,36 @@
-local menu = {check = true, tostring = "[menu scene]"}
+local menu = Element{
+    width = "100%", height = "100%", inLayout = false,
+    __tostring = function(self) return "[menu scene]" end
+}
 
-function menu:init()
-    self.title = Title(self, "REFRACT", {origin = "top center"})
+menu.title = Title(menu, "REFRACT", {inLayout = false})
 
-    self.layout = VerticalLayout(self, {}, {origin = "top center", align = "top", justify = "stretch", space = 20})
+menu.layout = VerticalLayout(menu, {}, {inLayout = false, justifyChildren = "top", alignChildren = "stretch", space = 20})
 
-    self.playButton = Button(self.layout, "Play", function()
-        switchScene("Game")
-    end)
-    self.optionsButton = Button(self.layout, "Options", function()
-        switchScene("Options")
-    end)
-    self.quitButton = Button(self.layout, "Quit", function()
-        love.event.quit()
-    end)
+menu.playButton = Button(menu.layout, "Play", function()
+    switchScene("Game")
+end)
+menu.optionsButton = Button(menu.layout, "Options", function()
+    switchScene("Options")
+end)
+menu.quitButton = Button(menu.layout, "Quit", function()
+    love.event.quit()
+end)
 
-    self.footer = Label(self, "made by mk8 and Dejv", {origin = "bottom center", font = love.graphics.newFont("fonts/Roboto-Light.ttf", 15)})
+menu.footer = Label(menu, "made by mk8 and Dejv", {inLayout = false, font = love.graphics.newFont("fonts/Roboto-Light.ttf", 15)})
 
-    self.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
+menu.backgroundImage = love.graphics.newImage("textures/menu_bg.png")
 
-    self.music = love.audio.newSource("audio/scifi.mp3", "stream")
-    table.insert(sounds.music, self.music)
-    self.music:setLooping(true)
-end
+menu.music = love.audio.newSource("audio/scifi.mp3", "stream")
+table.insert(sounds.music, menu.music)
+menu.music:setLooping(true)
 
 function menu:resize(w, h)
-    self.title.anchor = vec(w/2, h * 0.25)
-    self.footer.anchor = vec(w/2, h - 10)
-    self.layout.width = w * 0.3
-    self.layout.height = self.footer:getTop() - self.title:getBottom() - 30
-    self.layout:setPosition(w/2, (self.footer:getTop() + self.title:getBottom()) / 2)
+    self.title.x, self.title.y = w/2, h * 0.25 + self.title.h/2
+    self.footer.x, self.footer.y = w/2, h - 10 - self.footer.h/2
+    self.layout.w = w * 0.3
+    self.layout.h = self.footer.t - self.title.b - 30
+    self.layout.x, self.layout.y = w/2, (self.footer.t + self.title.b) / 2
 end
 
 function menu:predraw()
@@ -51,4 +52,4 @@ function menu:leave(next)
     self.music:stop()
 end
 
-return floof.new(menu)
+return menu

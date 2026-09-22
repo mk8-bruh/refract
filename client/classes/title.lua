@@ -1,4 +1,4 @@
-local Title = floof.class("Title", Element)
+local Title = Element:class("Title")
 
 Title.color = {
     outline = {0, 0, 0},
@@ -11,17 +11,22 @@ Title.typingSpeed = 0.17
 Title.deletingSpeed = 0.03
 Title.pauseTime = 1.7
 
-function Title:init(parent, text, params)
-    self.parent = parent
-    self.text = text
-    if params then copyData(params, self) end
+function Title:__init(parent, text, params)
+    self.super.__init(self, mergeData({parent = parent, text = text}, params or {}))
+end
 
+function Title:initialized()
     self.typed = 0
     self.typing = true
     self.timer = 0
     self.pause = 0
 
+    self:updateSize()
     self:generateScatter()
+end
+
+function Title:updateSize()
+    autoSize(self, self.font:getWidth(self.text), self.font:getHeight() + self.scatter * 2)
 end
 
 function Title:generateScatter()
@@ -29,14 +34,6 @@ function Title:generateScatter()
     for i = 1, #self.text do
         self.scatterOffsets[i] = love.math.random(-self.scatter, self.scatter)
     end
-end
-
-function Title:getContentWidth()
-    return self.font:getWidth(self.text)
-end
-
-function Title:getContentHeight()
-    return self.font:getHeight() + self.scatter * 2
 end
 
 function Title:update(dt)
@@ -71,17 +68,15 @@ function Title:update(dt)
 end
 
 function Title:draw()
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
     local shown = self.text:sub(1, self.typed)
-    local offset_x = x - w/2
+    local offset_x = self.l
 
     for i = 1, #shown do
         local char = shown:sub(i, i)
         local scatter = self.scatterOffsets[i] or 0
         local char_w = self.font:getWidth(char)
         local draw_x = offset_x
-        local draw_y = y - h/2 + scatter
+        local draw_y = self.t + scatter
 
         love.graphics.setFont(self.font)
         love.graphics.setColor(self.color.outline)

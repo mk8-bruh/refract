@@ -1,4 +1,4 @@
-local Slider = floof.class("Slider", Element)
+local Slider = Element:class("Slider")
 
 Slider.color = {
     left = {0.2, 0.2, 0.3},
@@ -18,26 +18,31 @@ Slider.lineWidth = {
 }
 Slider.outlineWidth = 3
 Slider.shadowOffset = vec(2, 4)
+Slider.min = 0
+Slider.max = 1
 
-function Slider:init(parent, min, max, value, action, params)
-    self.parent = parent
-    self.min = min or 0
-    self.max = max or 1
-    self.action = action
-    if params then copyData(params, self) end
+function Slider:__init(parent, min, max, value, action, params)
+    self.super.__init(self, mergeData({parent = parent, min = min, max = max, value = value, action = action}, params or {}))
+end
 
-    self.value = value or self.min
+function Slider:initialized()
+    if self.value == nil then
+        self.value = self.min
+    end
 end
 
 function Slider:setValue(value)
     self.value = math.max(self.min, math.min(self.max, value))
 end
 
+function Slider:getKnobPosition()
+    return self.l + self.h/2 + (self.w - self.h) * (self.value - self.min) / (self.max - self.min)
+end
+
 function Slider:draw()
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    local xmin, xmax = x - w/2 + h/2, x + w/2 - h/2
-    local sx = xmin + (xmax - xmin) * (self.value - self.min) / (self.max - self.min)
+    local y, h = self.y, self.h
+    local xmin, xmax = self.l + h/2, self.r - h/2
+    local sx = self:getKnobPosition()
 
     -- Shadow
     love.graphics.setColor(self.color.shadow)
@@ -78,27 +83,23 @@ function Slider:draw()
 end
 
 function Slider:check(x, y)
-    local px, py = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    local sx = px - w/2 + h/2 + (w - h) * (self.value - self.min) / (self.max - self.min)
-    return math.sqrt((x - sx)^2 + (y - py)^2) <= h/2
+    local sx = self:getKnobPosition()
+    return math.sqrt((x - sx)^2 + (y - self.y)^2) <= self.h/2
 end
 
-function Slider:pressed(x, y, id)
-    if type(id) == "number" and id > 1 then
+function Slider:pressed(x, y, press, isTouch)
+    if not isTouch and press > 1 then
         return false
     end
 end
 
-function Slider:moved(x, y, dx, dy)
-    local px, py = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    local sx = math.max(0, math.min(w - h, x - (px - w/2 + h/2)))
-    self.value = self.min + sx / (w - h) * (self.max - self.min)
+function Slider:dragged(x, y, dx, dy)
+    local sx = math.max(0, math.min(self.w - self.h, x - (self.l + self.h/2)))
+    self.value = self.min + sx / (self.w - self.h) * (self.max - self.min)
     return true
 end
 
-function Slider:released(x, y, id)
+function Slider:released(x, y, press, isTouch)
     if self.action then
         self:action(self.value)
     end

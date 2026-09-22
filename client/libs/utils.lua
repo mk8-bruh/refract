@@ -66,6 +66,16 @@ function deserialize(str)
     return e()
 end
 
+function autoSize(element, w, h)
+    local align = element.inLayout and element.parentElement and element.parentElement.alignChildren
+    if w and not element.width  and (element.alignX or align) ~= "stretch" then
+        element.w = w
+    end
+    if h and not element.height and (element.alignY or align) ~= "expand" then
+        element.h = h
+    end
+end
+
 -- graphics
 
 function applyCameraTransform(x, y, z, r)
@@ -217,7 +227,7 @@ end
 function fractalNoise(x, y, seed, layers)   
     local v = 0
     for l = 0, (layers or 1) - 1 do
-        v = v + love.math.noise((2^l + seed) * x, (2^l + seed) * y) / 2^(l+1)
+        v = v + love.math.perlinNoise((2^l + seed) * x, (2^l + seed) * y) / 2^(l+1)
     end
     return v
 end

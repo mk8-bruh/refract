@@ -1,13 +1,12 @@
-local BoltManager = floof.class("BoltManager")
+local BoltManager = Object:class("BoltManager")
 
 BoltManager.boltSpeed = 30
 BoltManager.boltLength = 1
 BoltManager.traceDistance = 15
 BoltManager.maxBounces = 6
 
-function BoltManager:init(world)
-    self.parent = world
-    self.world = world
+function BoltManager:__init(world)
+    self.super.__init(self, {parent = world, world = world})
 end
 
 function BoltManager:add(cell, position, direction, light, power)

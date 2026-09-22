@@ -1,4 +1,4 @@
-local ParticleManager = floof.class("ParticleManager")
+local ParticleManager = Object:class("ParticleManager")
 
 ParticleManager.particleLifetime = 1
 ParticleManager.particleEaseOut = 4
@@ -7,9 +7,8 @@ ParticleManager.particleEndOpacity = 0
 ParticleManager.particleStartRadius = 0.02
 ParticleManager.particleEndRadius = 0.2
 
-function ParticleManager:init(world)
-    self.parent = world
-    self.world = world
+function ParticleManager:__init(world)
+    self.super.__init(self, {parent = world, world = world})
 end
 
 function ParticleManager:add(position, color)

@@ -1,4 +1,4 @@
-local World = floof.class("World")
+local World = Object:class("World")
 
 local walls = require "data.walls"
 local textures = require "data.textures"
@@ -17,34 +17,32 @@ World.backgroundScale = 0.02
 
 World.groundTexture = textures.floor
 
-function World:init(parent, size, seed)
-    self.parent = parent
+function World:__init(parent, size, seed)
+    self.players = {}
+    self.super.__init(self, {parent = parent, size = size, seed = seed or os.time()})
+
     self.particleManager = ParticleManager(self)
     self.rayPreview = RayPreview(self)
     self.boltManager = BoltManager(self)
 
-    self.players = {}
-
-    self.size = size
-    self.seed = seed or os.time()
     self.cells, self.edges, self.boundary, self.rooms = generateMap(self.seed, self.size/2, self.minRoomCount, self.maxRoomCount, self.minRoomSize, self.boundaryWall, self.roomWall)
 end
 
 function World:added(object)
-    if object:is(ParticleManager) then
+    if floof.instanceOf(object, ParticleManager) then
         object.z = 1
-    elseif object:is(RayPreview) then
+    elseif floof.instanceOf(object, RayPreview) then
         object.z = 2
-    elseif object:is(BoltManager) then
+    elseif floof.instanceOf(object, BoltManager) then
         object.z = 3
-    elseif object:is(Player) then
+    elseif floof.instanceOf(object, Player) then
         object.z = 4
         table.insert(self.players, object)
     end
 end
 
 function World:removed(object)
-    if object:is(Player) then
+    if floof.instanceOf(object, Player) then
         for i, player in ipairs(self.players) do
             if player == object then
                 table.remove(self.players, i)
@@ -85,40 +83,39 @@ function World:predraw()
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(self.backgroundImage, 0, 0, 0, self.backgroundScale, self.backgroundScale, self.backgroundImage:getWidth()/2, self.backgroundImage:getHeight()/2)
 
-    love.graphics.stencil(function()
-        for _, cell in ipairs(self.cells) do
-            love.graphics.polygon("fill", vec.flattenArray(cell.vertices))
-        end
-    end)
-    love.graphics.setStencilTest("equal", 1)
+    love.graphics.clear(false, true, false)
+    love.graphics.setStencilMode("draw", 1)
+    for _, cell in ipairs(self.cells) do
+        love.graphics.polygon("fill", vec.flattenArray(cell.vertices))
+    end
+    love.graphics.setStencilMode("test", 1)
     love.graphics.setColor(0.6, 0.6, 0.6)
     love.graphics.draw(self.groundTexture, 0, 0, 0, 2, 2)
-    love.graphics.setStencilTest()
+    love.graphics.setStencilMode()
 end
 
 function World:postdraw()
     for _, cell in pairs(self.cells) do
         if cell.wall then
-            love.graphics.stencil(function()
-                love.graphics.polygon(vec.flattenArray(cell.vertices))
-            end, "replace", cell.wall.mask, true)
+            love.graphics.setStencilMode("draw", cell.wall.mask)
+            love.graphics.polygon(vec.flattenArray(cell.vertices))
         end
     end
     for _, edge in ipairs(self.edges) do
         if edge.wall then
-            love.graphics.stencil(function()
-                love.graphics.setLineWidth(edge.wall.thickness)
-                love.graphics.line(vec.flattenArray(edge))
-                love.graphics.circle("fill", edge[1].x, edge[1].y, edge.wall.thickness/2)
-                love.graphics.circle("fill", edge[2].x, edge[2].y, edge.wall.thickness/2)
-            end, "replace", edge.wall.mask, true)
+            love.graphics.setStencilMode("draw", edge.wall.mask)
+            love.graphics.setLineWidth(edge.wall.thickness)
+            love.graphics.line(vec.flattenArray(edge))
+            love.graphics.circle("fill", edge[1].x, edge[1].y, edge.wall.thickness/2)
+            love.graphics.circle("fill", edge[2].x, edge[2].y, edge.wall.thickness/2)
         end
     end
     for i, w in ipairs(walls) do
-        love.graphics.setStencilTest("equal", w.mask)
+        love.graphics.setStencilMode("test", w.mask)
         love.graphics.setColor(w.tint)
         love.graphics.draw(w.texture)
     end
+    love.graphics.setStencilMode()
 end
 
 return World

@@ -1,4 +1,4 @@
-local Button = floof.class("Button", Element)
+local Button = Element:class("Button")
 
 Button.color = {
     outline = {0.2, 0.2, 0.3},
@@ -16,33 +16,41 @@ Button.color = {
 }
 Button.font = love.graphics.newFont("fonts/Roboto-Light.ttf", 40)
 Button.outlineWidth = 3
-Button.padding = vec(10, 10)
+Button.textPadding = vec(10, 10)
 Button.cornerRadius = 10
 
-function Button:init(parent, text, action, params)
-    self.parent = parent
-    self.text = text
-    self.action = action
-    if params then copyData(params, self) end
+function Button:__init(parent, text, action, params)
+    self.super.__init(self, mergeData({parent = parent, text = text, action = action}, params or {}))
 end
 
-function Button:getContentWidth()
-    return self.font:getWidth(self.text) + self.padding.x * 2
+function Button:__get_text()
+    return rawget(self, "textString") or ""
 end
 
-function Button:getContentHeight()
-    return self.font:getHeight() + self.padding.y * 2
+function Button:__set_text(value)
+    rawset(self, "textString", value)
+    self:updateSize()
+end
+
+function Button:initialized()
+    self:updateSize()
+end
+
+function Button:updateSize()
+    autoSize(self,
+        self.font:getWidth(self.text) + self.textPadding.x * 2,
+        self.font:getHeight() + self.textPadding.y * 2
+    )
 end
 
 function Button:draw()
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
+    local x, y, w, h = self.x, self.y, self.w, self.h
     local tw, th = self.font:getWidth(self.text), self.font:getHeight()
-    local ts = math.min((w - self.padding.x * 2) / tw, (h - self.padding.y * 2) / th, 1)
+    local ts = math.min((w - self.textPadding.x * 2) / tw, (h - self.textPadding.y * 2) / th, 1)
 
     -- Shadow
     love.graphics.setColor(self.color.shadow)
-    love.graphics.rectangle("fill", x - w/2 + 2, y - h/2 + 4, w, h, self.cornerRadius + 2)
+    love.graphics.rectangle("fill", self.l + 2, self.t + 4, w, h, self.cornerRadius + 2)
 
     -- Fill
     love.graphics.setColor(
@@ -50,7 +58,7 @@ function Button:draw()
         self.isHovered and self.color.hovered and self.color.hovered.fill or
         self.color.fill
     )
-    love.graphics.rectangle("fill", x - w/2, y - h/2, w, h, self.cornerRadius)
+    love.graphics.rectangle("fill", self.l, self.t, w, h, self.cornerRadius)
 
     -- Outline
     love.graphics.setColor(
@@ -59,7 +67,7 @@ function Button:draw()
         self.color.outline
     )
     love.graphics.setLineWidth(self.outlineWidth)
-    love.graphics.rectangle("line", x - w/2, y - h/2, w, h, self.cornerRadius)
+    love.graphics.rectangle("line", self.l, self.t, w, h, self.cornerRadius)
 
     -- Text shadow
     love.graphics.setFont(self.font)
@@ -76,13 +84,13 @@ function Button:draw()
     love.graphics.print(self.text, x - ts*tw/2, y - ts*th/2, 0, ts)
 end
 
-function Button:pressed(x, y, id)
-    if type(id) == "number" and id > 1 then
+function Button:pressed(x, y, press, isTouch)
+    if not isTouch and press > 1 then
         return false
     end
 end
 
-function Button:released(x, y, id)
+function Button:released(x, y, press, isTouch)
     if self.action then
         self:action()
     end

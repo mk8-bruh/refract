@@ -1,14 +1,10 @@
-local RayPreview = floof.class("RayPreview")
+local RayPreview = Object:class("RayPreview")
 
 RayPreview.range = 10
 RayPreview.dashSize = 0.25
 
-function RayPreview:init(world, player, range)
-    self.parent = world
-    self.world = world
-    self.player = player
-    self.range = range
-    self.ray = nil
+function RayPreview:__init(world, player, range)
+    self.super.__init(self, {parent = world, world = world, player = player, range = range})
 end
 
 function RayPreview:update(dt)

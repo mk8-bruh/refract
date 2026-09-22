@@ -1,4 +1,4 @@
-local Player = floof.class("Player")
+local Player = Object:class("Player")
 
 local light = require "data.light"
 
@@ -26,12 +26,11 @@ Player.keybinds = {
     blue = "v"
 }
 
-function Player:init(world, position, direction, sensitivity, keybinds)
-    self.parent = world
-    self.world = world
+function Player:__init(world, position, direction, sensitivity, keybinds)
+    self.super.__init(self, {parent = world, world = world, sensitivity = sensitivity})
+
     self.position = position or vec.zero
-    self.direction = direction and direction:normal() or position ~= vec.zero and -position:normal() or vec.up
-    self.radius = radius
+    self.direction = direction and direction:normal() or self.position ~= vec.zero and -self.position:normal() or vec.up
     self.lightToggles = {red = true, green = true, blue = true}
     self.light = self.lightMap.rgb
     self.cell = nil
@@ -40,8 +39,8 @@ function Player:init(world, position, direction, sensitivity, keybinds)
             self.cell = cell
         end
     end
-    self.sensitivity = sensitivity
     self.keybinds = setmetatable(keybinds or {}, {__index = Player.keybinds})
+    self.isListener = true
 end
 
 function Player:moveTo(position)
@@ -93,8 +92,12 @@ function Player:update(dt)
     end
 end
 
-function Player:mousedelta(x, y)
-    self.direction = self.direction:rotate(x * Player.sensitivity * (self.sensitivity or 100) / 100)
+function Player:mousemoved(dx, dy)
+    self.direction = self.direction:rotate(dx * Player.sensitivity * (self.sensitivity or 100) / 100)
+end
+
+function Player:mousepressed(button)
+    self:keypressed(("mouse%d"):format(button))
 end
 
 function Player:keypressed(key)

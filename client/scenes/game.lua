@@ -1,13 +1,14 @@
-local game = {check = true, tostring = "[game scene]"}
+local game = Element{
+    width = "100%", height = "100%", inLayout = false, isListener = true,
+    __tostring = function(self) return "[game scene]" end
+}
 
-function game:init()
-    self.ui = floof.new{parent = self, z = 1}
-    self.fpsCounter = Label(self.ui, "FPS", {origin = "top right", font = love.graphics.newFont(12)})
-    function self.fpsCounter:update(dt)
-        self.text = ("%d FPS"):format(love.timer.getFPS())
-    end
-    self.colorIndicator = ColorIndicator(self.ui, {origin = "bottom right"})
+game.ui = Object{parent = game, z = 1}
+game.fpsCounter = Label(game.ui, "FPS", {inLayout = false, alignX = "right", alignY = "top", font = love.graphics.newFont(12)})
+function game.fpsCounter:update(dt)
+    self.text = ("%d FPS"):format(love.timer.getFPS())
 end
+game.colorIndicator = ColorIndicator(game.ui, {inLayout = false, alignX = "right", alignY = "bottom"})
 
 function game:enter(prev, seed)
     self.world = World(self, 24, seed)
@@ -17,21 +18,18 @@ function game:enter(prev, seed)
     
     love.mouse.setRelativeMode(true)
 
-    self.activeChild = self.player
     self.world.tracking = self.player
     self.world.rayPreview.player = self.player
 end
 
 function game:leave(next)
-    self.world.parent = nil
+    self.world:delete()
     love.mouse.setRelativeMode(false)
     love.mouse.setPosition(love.graphics.getWidth()/2, love.graphics.getHeight()/2)
 end
 
 function game:resize(w, h)
-    self.fpsCounter.anchor = vec(w, 0)
-    self.colorIndicator.width, self.colorIndicator.height = math.min(w, h) * 0.2, math.min(w, h) * 0.2
-    self.colorIndicator.anchor = vec(w, h)
+    self.colorIndicator.w, self.colorIndicator.h = math.min(w, h) * 0.2, math.min(w, h) * 0.2
 end
 
 function game:keypressed(key)
@@ -40,4 +38,4 @@ function game:keypressed(key)
     end
 end
 
-return floof.new(game)
+return game

@@ -1,138 +1,37 @@
-local VerticalLayout = floof.class("VerticalLayout", Element)
+local VerticalLayout = Element:class("VerticalLayout")
 
-VerticalLayout.align = "middle"
-VerticalLayout.justify = "center"
 VerticalLayout.scrollDeceleration = 250
 VerticalLayout.scrollSensitivity = 5
 
-function VerticalLayout:init(parent, items, params)
-    self.parent = parent
-    if params then copyData(params, self) end
+function VerticalLayout:__init(parent, items, params)
+    self.super.__init(self, mergeData({parent = parent}, params or {}), unpack(items or {}))
+end
 
-    self.items = items or {}
-    for i, item in ipairs(self.items) do item.parent = self end
-    self.scroll = 0
+function VerticalLayout:constructed()
     self.scrollVelocity = 0
-end
-
-function VerticalLayout:getContentWidth()
-    local w = 0
-    for i, item in ipairs(self.items) do
-        w = math.max(w, item:getSize().x)
-    end
-    return w
-end
-
-function VerticalLayout:getContentHeight()
-    if #self.items == 0 then return 0 end
-    local space = self.align ~= "stretch" and self.align ~= "space" and self.space or 0
-    local h = space * (#self.items - 1)
-    for i, item in ipairs(self.items) do
-        h = h + item:getSize().x
-    end
-    return h
-end
-
-function VerticalLayout:getContentSize()
-    return vec(self:getContentWidth(), self:getContentHeight())
-end
-
-function VerticalLayout:getSize()
-    return vec(self.width or self:getContentWidth(), self.height or self:getContentHeight())
 end
 
 function VerticalLayout:update(dt)
-    local x, y = self:getPosition():unpack()
-    local w, h = self:getSize():unpack()
-    local cw, ch = self:getContentWidth(), self:getContentHeight()
-
-    if self.scroll <= 0 then
-        self.scrollVelocity = math.max(self.scrollVelocity, 0)
-    elseif self.scroll >= ch - h then
-        self.scrollVelocity = math.min(self.scrollVelocity, 0)
-    end
-    if not self.isPressed then
-        self.scroll = self.scroll + self.scrollVelocity * dt
-    end
-    local d = self.scrollDeceleration * dt
-    self.scrollVelocity = math.abs(self.scrollVelocity) <= d and 0 or self.scrollVelocity > 0 and self.scrollVelocity - d or self.scrollVelocity + d
-    if ch > h then
-        if self.align == "top" then
-            self.scroll = math.max(0, math.min(ch - h, self.scroll or 0))
-        elseif self.align == "bottom" then
-            self.scroll = math.max(h - ch, math.min(0, self.scroll or 0))
-        else
-            self.scroll = math.max((h - ch) / 2, math.min((ch - h) / 2, self.scroll or 0))
+    if self.scrollVelocity ~= 0 then
+        if not self.isPressed then
+            local previous = self.scroll
+            self.scroll = previous + self.scrollVelocity * dt
+            if self.scroll == previous then self.scrollVelocity = 0 end
         end
-    else
-        self.scroll = 0
-    end
-    self.scroll = math.min(0, math.max(ch - h, self.scroll))
-
-    if #self.items == 1 then
-        local item = self.items[1]
-        local justify = item.justifySelf or self.justify
-        item:setPosition(
-            justify == "left" and x - w/2 + item:getSize().x/2 or
-            justify == "right" and x + w/2 - item:getSize().x/2 or
-            x,
-            ch > h and y - h/2 + item:getSize().y/2 - self.scroll or
-            self.align == "top" and y - h/2 + item:getSize().y/2 or
-            self.align == "bottom" and y + h/2 - item:getSize().y/2 or
-            y
-        )
-    elseif #self.items > 1 then
-        local space = self.space or 0
-        local t = y - ch/2 - self.scroll
-        if self.align == "top" then
-            t = y - h/2 - self.scroll
-        elseif self.align == "bottom" then
-            t = y + h/2 - ch - self.scroll
-        elseif ch <= h and self.align == "stretch" then
-            space = (h - ch) / (#self.items - 1)
-        elseif ch <= h and self.align == "space" then
-            space = (h - ch) / (#self.items + 1)
-            t = y - h/2 + space
-        end
-        for i, item in ipairs(self.items) do
-            local iw, ih = item:getSize():unpack()
-            local justify = item.justifySelf or self.justify
-            item:setPosition(
-                justify == "left" and x - w/2 + iw/2 or
-                justify == "right" and x + w/2 - iw/2 or
-                x,
-                t + ih/2
-            )
-            if justify == "stretch" then
-                item.width = w
-            end
-            t = t + ih + space
-        end
+        local d = self.scrollDeceleration * dt
+        self.scrollVelocity = math.abs(self.scrollVelocity) <= d and 0 or self.scrollVelocity > 0 and self.scrollVelocity - d or self.scrollVelocity + d
     end
 end
 
-function VerticalLayout:added(object)
-    table.insert(self.items, object)
-end
-
-function VerticalLayout:removed(object)
-    for i, item in ipairs(self.items) do
-        if item == object then
-            table.remove(self.items, i)
-            break
-        end
-    end
-end
-
-function VerticalLayout:scrolled(t)
-    self.scroll = self.scroll - t * self.scrollSensitivity
+function VerticalLayout:scrolled(dx, dy)
+    self.scroll = self.scroll + dy * self.scrollSensitivity
     self.scrollVelocity = 0
 end
 
-function VerticalLayout:moved(x, y, dx, dy, id)
-    if type(id) ~= "number" then
-        self.scroll = self.scroll - dy
-        self.scrollVelocity = -dy / love.timer.getDelta()
+function VerticalLayout:dragged(x, y, dx, dy, press, isTouch)
+    if isTouch then
+        self.scroll = self.scroll + dy
+        self.scrollVelocity = dy / love.timer.getDelta()
     end
     return true
 end
